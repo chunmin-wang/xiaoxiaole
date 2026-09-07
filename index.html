@@ -114,6 +114,11 @@
     z-index: 6;
     animation: pulse 0.9s ease-in-out infinite;
   }
+  .tile.pressed {
+    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.1);
+    box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 8px 22px rgba(0,0,0,.45);
+    z-index: 6;
+  }
   @keyframes pulse {
     0%,100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.12); }
     50% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.18); }
@@ -219,6 +224,24 @@
   .panel .btn { width: 100%; margin-top: 6px; font-size: 18px; }
   .stars { font-size: 40px; margin: 10px 0; letter-spacing: 6px; }
 
+  /* 关卡选择 */
+  .level-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .level-card {
+    background: rgba(255,255,255,.1);
+    border: 2px solid rgba(255,255,255,.28);
+    border-radius: 14px;
+    padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    transition: transform .1s ease, border-color .1s ease, background .1s ease;
+  }
+  .level-card:hover { transform: scale(1.02); border-color: rgba(255,255,255,.5); }
+  .level-card.locked { opacity: .45; cursor: not-allowed; }
+  .level-card .lv-name { font-weight: 800; font-size: 16px; }
+  .level-card .lv-info { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .level-card .lv-stars { font-size: 17px; letter-spacing: 2px; margin: 0 10px; }
+  .level-card .play { font-size: 20px; color: #ffe66d; }
+
   /* confetti */
   .confetti {
     position: fixed; top: -20px; width: 10px; height: 14px; z-index: 90;
@@ -248,7 +271,7 @@
 <div class="game-wrap">
   <div class="hud">
     <div class="stat"><div class="label">得分</div><div class="value" id="score">0</div></div>
-    <div class="title-tag">🍬 糖果消消乐</div>
+    <div class="title-tag" id="levelTag">🍬 糖果消消乐</div>
     <div class="stat target"><div class="label">目标</div><div class="value" id="target">1000</div></div>
     <div class="stat"><div class="label">剩余步数</div><div class="value" id="moves">20</div></div>
   </div>
@@ -262,6 +285,7 @@
   <div class="controls">
     <button class="btn secondary" id="hintBtn">💡 提示</button>
     <button class="btn secondary" id="restartBtn">🔄 重开</button>
+    <button class="btn secondary" id="levelBtn">🏠 选关</button>
   </div>
 </div>
 
@@ -269,14 +293,13 @@
 <div class="overlay" id="startOverlay">
   <div class="panel">
     <h1>🍭 糖果消消乐</h1>
-    <div class="sub">经典三消 · 连击加成 · 爽快消除</div>
+    <div class="sub">闯关模式 · 三消 · 连击加成</div>
     <div class="rule">
-      <b>玩法：</b>点击选中糖果，再点击相邻糖果交换位置。<br>
-      三个及以上相同糖果连成一线即可消除。<br>
-      消除后上方糖果会<b>下落补充</b>，连续消除会触发<b>连击加成</b>！<br>
+      <b>玩法：</b>点击选中糖果，或<b>按住并拖动</b>糖果交换位置。<br>
+      三个及以上相同糖果连成一线即可消除，连续消除触发<b>连击加成</b>！<br>
       在<b>限定步数</b>内达到<b>目标分数</b>即可通关 ⭐
     </div>
-    <button class="btn" id="startBtn">🎮 开始游戏</button>
+    <div class="level-list" id="levelList"></div>
   </div>
 </div>
 
@@ -294,25 +317,37 @@
 <script>
 "use strict";
 /* ============ 常量 ============ */
-const ROWS = 8, COLS = 8, TYPES = 6;
-const CANDIES = ["🍓","🍋","🍇","🍊","🍏","🍉"];  // 全部为全平台通用水果 emoji（避免 🫐 蓝莓等新 emoji 显示成白色方块）
-const COLORS = ["#ff5d7e","#ffd34d","#b26bff","#ff9a3d","#5fb8ff","#7ed957"];
-const MAX_MOVES = 20;
-const TARGET = 1200;
+const ROWS = 8, COLS = 8;
+let TYPES = 6;                 // 当前关卡糖果种类数（随关卡变化）
+const CANDIES = ["🍓","🍋","🍇","🍊","🍏","🍉","🍒"];  // 全部为全平台通用水果 emoji
+const COLORS = ["#ff5d7e","#ffd34d","#b26bff","#ff9a3d","#5fb8ff","#7ed957","#ff4f8b"];
+/* 关卡配置：糖果种类 / 步数 / 目标分数 */
+const LEVELS = [
+  { name:"甜蜜初尝", types:6, moves:20, target:1200 },
+  { name:"水果风暴", types:7, moves:20, target:1600 },
+  { name:"糖果盛宴", types:7, moves:18, target:2000 },
+];
+const DRAG_THRESHOLD = 18;     // 按住后拖动多少像素触发交换
 
 /* ============ 状态 ============ */
 let board = [];           // board[r][c] = type 或 -1(空)
-let score = 0, movesLeft = MAX_MOVES;
+let score = 0, movesLeft = 20;
 let selected = null;      // {r,c}
 let busy = false;         // 动画进行中
 let hintTimer = null;
 let gameEnded = false;
+let currentLevel = 0;     // 当前关卡（0-based）
+let unlockedLevels = 1;   // 已解锁关卡数
+let levelStars = [0,0,0]; // 各关最佳星级
+let dragState = null;     // 拖动状态 {startR,startC,startX,startY,consumed,el}
 
 const boardEl = document.getElementById("board");
 const cellGridEl = document.getElementById("cellGrid");
 const scoreEl = document.getElementById("score");
 const targetEl = document.getElementById("target");
 const movesEl = document.getElementById("moves");
+const levelTagEl = document.getElementById("levelTag");
+const levelListEl = document.getElementById("levelList");
 
 /* 画布几何 */
 const CELL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cell"));
@@ -435,6 +470,7 @@ function px(r,c){ return { x: c*STEP, y: r*STEP }; }
 
 function renderAll() {
   selected = null;               // 清空选中状态（旧格子已全部移除）
+  dragState = null;              // 清空拖动状态
   boardEl.querySelectorAll(".tile").forEach(el=>el.remove());
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     createTile(r, c, board[r][c], true);
@@ -450,9 +486,9 @@ function createTile(r, c, type, instant) {
   el.style.setProperty("--ty", p.y + "px");
   if (instant) { el.style.transition = "none"; requestAnimationFrame(()=>requestAnimationFrame(()=>el.style.transition="")); }
   el.innerHTML = `<span class="gem">${CANDIES[type]}</span>`;
-  // 注意：必须在点击时读取元素当前 data-r/data-c，不能闭包捕获创建时的坐标
-  // （否则糖果下落后点击会触发旧位置的逻辑，导致换错格）
-  el.addEventListener("pointerdown", () => onTileClick(Number(el.dataset.r), Number(el.dataset.c)));
+  // 注意：必须在点击/拖动时读取元素当前 data-r/data-c，不能闭包捕获创建时的坐标
+  // （否则糖果下落后操作会触发旧位置的逻辑，导致换错格）
+  el.addEventListener("pointerdown", (e) => onTilePointerDown(e, Number(el.dataset.r), Number(el.dataset.c)));
   boardEl.appendChild(el);
   return el;
 }
@@ -466,7 +502,51 @@ function moveTileTo(el, r, c) {
 
 function tileAt(r,c){ return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`); }
 
-/* ============ 交互 ============ */
+/* ============ 交互（点击 + 拖动） ============ */
+function onTilePointerDown(e, r, c) {
+  if (busy || gameEnded) return;
+  const el = tileAt(r, c);
+  if (!el) return;
+  if (dragState) { dragState.el.classList.remove("pressed"); dragState = null; }
+  dragState = { startR:r, startC:c, startX:e.clientX, startY:e.clientY, consumed:false, el:el };
+  el.classList.add("pressed");
+  try { el.setPointerCapture(e.pointerId); } catch(_) {}
+}
+
+function onBoardPointerMove(e) {
+  if (!dragState || dragState.consumed || busy) return;
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_THRESHOLD) return;
+  // 判断主方向
+  let dr = 0, dc = 0;
+  if (Math.abs(dx) >= Math.abs(dy)) dc = dx > 0 ? 1 : -1;
+  else dr = dy > 0 ? 1 : -1;
+  const tr = dragState.startR + dr, tc = dragState.startC + dc;
+  if (!inBounds(tr, tc)) return;   // 拖向棋盘外：继续等待手势回正
+  const d = dragState;
+  d.consumed = true;
+  d.el.classList.remove("pressed");
+  if (selected) { const s = tileAt(selected.r, selected.c); if (s) s.classList.remove("selected"); selected = null; }
+  clearHint();
+  trySwap(d.startR, d.startC, tr, tc);
+  dragState = null;
+}
+
+function onBoardPointerUp() {
+  if (!dragState) return;
+  const d = dragState;
+  dragState = null;
+  d.el.classList.remove("pressed");
+  if (d.consumed) return;
+  // 轻点：走点击选中/交换逻辑（实时读取当前坐标）
+  onTileClick(Number(d.el.dataset.r), Number(d.el.dataset.c));
+}
+
+function onBoardPointerCancel() {
+  if (dragState) { dragState.el.classList.remove("pressed"); dragState = null; }
+}
+
 function onTileClick(r, c) {
   if (busy || gameEnded) return;
   const el = tileAt(r, c);
@@ -644,17 +724,31 @@ function confetti() {
 
 /* ============ UI ============ */
 function updateHud() {
+  const lv = LEVELS[currentLevel];
   scoreEl.textContent = score;
   movesEl.textContent = movesLeft;
-  targetEl.textContent = TARGET;
+  targetEl.textContent = lv.target;
+  levelTagEl.textContent = "第 " + (currentLevel + 1) + "/" + LEVELS.length + " 关 · " + lv.name;
   // 进度条效果：分数颜色变化
-  scoreEl.style.color = score >= TARGET ? "#7dffa8" : "#fff";
+  scoreEl.style.color = score >= lv.target ? "#7dffa8" : "#fff";
+}
+
+function calcStars() {
+  const lv = LEVELS[currentLevel];
+  if (movesLeft >= Math.ceil(lv.moves * 0.25)) return 3;
+  if (movesLeft > 0) return 2;
+  return 1;
 }
 
 function checkGameState() {
   if (gameEnded) return;
-  if (score >= TARGET) {
+  const lv = LEVELS[currentLevel];
+  if (score >= lv.target) {
     gameEnded = true;
+    const st = calcStars();
+    levelStars[currentLevel] = Math.max(levelStars[currentLevel], st);
+    if (currentLevel + 1 < LEVELS.length) unlockedLevels = Math.max(unlockedLevels, currentLevel + 2);
+    saveProgress();
     sfxWin(); confetti();
     showResult(true);
   } else if (movesLeft <= 0) {
@@ -666,12 +760,33 @@ function checkGameState() {
 
 function showResult(win) {
   const overlay = document.getElementById("resultOverlay");
-  document.getElementById("resultTitle").textContent = win ? "🎉 通关成功！" : "😢 步数用完了";
-  document.getElementById("stars").textContent = win ? "⭐⭐⭐" : "⭐";
-  document.getElementById("resultScore").textContent = "得分 " + score + " / 目标 " + TARGET;
-  document.getElementById("resultMsg").textContent = win
-    ? "太棒了！剩余 " + movesLeft + " 步，刷新纪录吧！"
-    : "差一点就通关啦，再试一次吧！";
+  const lv = LEVELS[currentLevel];
+  const btn = document.getElementById("againBtn");
+  const title = document.getElementById("resultTitle");
+  const starsEl = document.getElementById("stars");
+  const resultScore = document.getElementById("resultScore");
+  const msg = document.getElementById("resultMsg");
+  if (win) {
+    const st = calcStars();
+    title.textContent = "🎉 通关成功！";
+    starsEl.textContent = "★".repeat(st) + "☆".repeat(3 - st);
+    resultScore.textContent = "得分 " + score + " / 目标 " + lv.target;
+    msg.textContent = "剩余 " + movesLeft + " 步，太棒了！";
+    if (currentLevel + 1 < LEVELS.length) {
+      btn.textContent = "▶ 下一关：" + LEVELS[currentLevel + 1].name;
+      btn.onclick = () => startLevel(currentLevel + 1);
+    } else {
+      btn.textContent = "🎊 全部通关！再来一次";
+      btn.onclick = () => startLevel(0);
+    }
+  } else {
+    title.textContent = "😢 步数用完了";
+    starsEl.textContent = "💪";
+    resultScore.textContent = "得分 " + score + " / 目标 " + lv.target;
+    msg.textContent = "差一点点，再试一次吧！";
+    btn.textContent = "🔁 再试一次";
+    btn.onclick = () => startLevel(currentLevel);
+  }
   overlay.classList.remove("hidden");
 }
 
@@ -701,10 +816,47 @@ function showHint() {
 }
 function clearHint(){ boardEl.querySelectorAll(".hint").forEach(el=>el.classList.remove("hint")); clearTimeout(hintTimer); }
 
+/* ============ 关卡进度存储 ============ */
+function loadProgress() {
+  try {
+    const d = JSON.parse(localStorage.getItem("xiaoxiaole_progress"));
+    if (d && Array.isArray(d.stars)) {
+      unlockedLevels = d.unlocked || 1;
+      levelStars = d.stars.slice(0, LEVELS.length);
+      while (levelStars.length < LEVELS.length) levelStars.push(0);
+    }
+  } catch(e) {}
+}
+function saveProgress() {
+  try {
+    localStorage.setItem("xiaoxiaole_progress", JSON.stringify({ unlocked: unlockedLevels, stars: levelStars }));
+  } catch(e) {}
+}
+
+/* ============ 关卡选择 ============ */
+function renderLevelList() {
+  levelListEl.innerHTML = "";
+  LEVELS.forEach((lv, i) => {
+    const unlocked = i < unlockedLevels;
+    const card = document.createElement("div");
+    card.className = "level-card" + (unlocked ? "" : " locked");
+    card.innerHTML =
+      '<div><div class="lv-name">' + (unlocked ? "第 " + (i+1) + " 关" : "🔒") + " · " + lv.name + '</div>' +
+      '<div class="lv-info">目标 ' + lv.target + " 分 · " + lv.moves + " 步 · " + lv.types + " 种糖果</div></div>" +
+      '<div class="lv-stars">' + (unlocked ? "★".repeat(levelStars[i]) + "☆".repeat(3 - levelStars[i]) : "") + "</div>" +
+      '<div class="play">' + (unlocked ? "▶" : "") + "</div>";
+    card.addEventListener("click", () => { if (unlocked) startLevel(i); });
+    levelListEl.appendChild(card);
+  });
+}
+
 /* ============ 开始 / 重开 ============ */
-function startGame() {
-  score = 0; movesLeft = MAX_MOVES; gameEnded = false; busy = false;
-  selected = null;
+function startLevel(idx) {
+  currentLevel = idx;
+  const lv = LEVELS[idx];
+  TYPES = lv.types;
+  score = 0; movesLeft = lv.moves; gameEnded = false; busy = false;
+  selected = null; dragState = null;
   initBoard();
   renderAll();
   updateHud();
@@ -712,19 +864,29 @@ function startGame() {
   document.getElementById("resultOverlay").classList.add("hidden");
 }
 
+function showLevelSelect() {
+  renderLevelList();
+  document.getElementById("startOverlay").classList.remove("hidden");
+  document.getElementById("resultOverlay").classList.add("hidden");
+}
+
 /* ============ 事件绑定 ============ */
-document.getElementById("startBtn").addEventListener("click", startGame);
-document.getElementById("againBtn").addEventListener("click", startGame);
-document.getElementById("restartBtn").addEventListener("click", startGame);
+document.getElementById("restartBtn").addEventListener("click", () => startLevel(currentLevel));
 document.getElementById("hintBtn").addEventListener("click", showHint);
+document.getElementById("levelBtn").addEventListener("click", showLevelSelect);
+boardEl.addEventListener("pointermove", onBoardPointerMove);
+boardEl.addEventListener("pointerup", onBoardPointerUp);
+boardEl.addEventListener("pointercancel", onBoardPointerCancel);
 
 /* 生成网格底纹 */
 for (let i = 0; i < ROWS*COLS; i++) cellGridEl.appendChild(document.createElement("i"));
 
-/* 初始化首屏棋盘预览 */
+/* 初始化首屏棋盘预览 + 关卡选择 */
+loadProgress();
 initBoard();
 renderAll();
 updateHud();
+renderLevelList();
 </script>
 </body>
 </html>
