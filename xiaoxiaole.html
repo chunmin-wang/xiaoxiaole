@@ -7,8 +7,8 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
-    --cell: 56px;
-    --gap: 6px;
+    --cell: 48px;   /* 实际尺寸由 JS fitBoard() 按屏幕宽度动态计算 */
+    --gap: 5px;
     --board-pad: 10px;
     --accent: #ff6fb5;
     --accent2: #ffd166;
@@ -37,31 +37,34 @@
       radial-gradient(circle at 78% 82%, rgba(255,255,255,.14) 0, transparent 50px),
       radial-gradient(circle at 22% 78%, rgba(255,255,255,.10) 0, transparent 45px);
   }
-  .game-wrap { position: relative; z-index: 1; margin: auto 0; }
+  .game-wrap { position: relative; z-index: 1; margin: auto 0; width: 100%; max-width: 520px; padding: 8px 12px; box-sizing: border-box; }
+
+  .game-title {
+    text-align: center; font-size: 26px; font-weight: 900; letter-spacing: 3px;
+    text-shadow: 0 3px 8px rgba(0,0,0,.35); margin-bottom: 2px;
+  }
+  .level-name { text-align: center; font-size: 13px; opacity: .9; margin-bottom: 12px; letter-spacing: 1px; }
 
   .hud {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 14px;
+    display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px;
   }
+  .hud .stat { flex: 1; min-width: 0; }
   .stat {
     background: rgba(255,255,255,.14);
     border: 1px solid rgba(255,255,255,.28);
     border-radius: 14px;
-    padding: 8px 14px; min-width: 96px; text-align: center;
+    padding: 8px 10px; min-width: 0; text-align: center;
     backdrop-filter: blur(4px);
     box-shadow: 0 4px 14px rgba(0,0,0,.18);
   }
   .stat .label { font-size: 11px; opacity: .85; letter-spacing: 1px; }
   .stat .value { font-size: 22px; font-weight: 800; line-height: 1.15; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
   .stat.target .value { font-size: 17px; }
-  .title-tag {
-    font-size: 20px; font-weight: 900; letter-spacing: 1px;
-    text-shadow: 0 3px 0 rgba(0,0,0,.18);
-    white-space: nowrap;
-  }
 
   .board-box {
     position: relative;
+    width: fit-content;
+    margin: 0 auto;
     background: rgba(255,255,255,.13);
     border: 2px solid rgba(255,255,255,.35);
     border-radius: 20px;
@@ -96,7 +99,7 @@
     height: var(--cell);
     border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 32px;
+    font-size: calc(var(--cell) * 0.58);
     cursor: pointer;
     touch-action: none;   /* 关键：禁止浏览器拦截触屏滑动，否则手机端拖拽会失效 */
     -webkit-user-select: none;
@@ -260,22 +263,17 @@
   }
 
   @media (max-width: 520px) {
-    :root { --cell: 44px; --gap: 5px; }
-    .tile { font-size: 26px; }
-    .title-tag { font-size: 16px; }
-    .stat { min-width: 76px; padding: 6px 8px; }
+    .game-title { font-size: 22px; }
     .stat .value { font-size: 18px; }
     .stat.target .value { font-size: 15px; }
   }
   @media (max-width: 400px) {
-    :root { --cell: 36px; --gap: 4px; }
-    .tile { font-size: 22px; }
+    .game-title { font-size: 20px; }
+    .stat .label { font-size: 10px; }
+    .stat .value { font-size: 16px; }
+    .panel { padding: 22px 18px; }
   }
   @media (max-height: 640px) {
-    :root { --cell: 34px; --gap: 4px; }
-    .tile { font-size: 20px; }
-    .stat { min-width: 68px; padding: 5px 8px; }
-    .stat .value { font-size: 16px; }
     .controls { margin-top: 10px; }
   }
 </style>
@@ -283,9 +281,10 @@
 <body>
 
 <div class="game-wrap">
+  <div class="game-title">🍬 糖果消消乐</div>
+  <div class="level-name" id="levelTag">第 1/3 关 · 甜蜜初尝</div>
   <div class="hud">
     <div class="stat"><div class="label">得分</div><div class="value" id="score">0</div></div>
-    <div class="title-tag" id="levelTag">🍬 糖果消消乐</div>
     <div class="stat target"><div class="label">目标</div><div class="value" id="target">1000</div></div>
     <div class="stat"><div class="label">剩余步数</div><div class="value" id="moves">20</div></div>
   </div>
@@ -363,10 +362,27 @@ const movesEl = document.getElementById("moves");
 const levelTagEl = document.getElementById("levelTag");
 const levelListEl = document.getElementById("levelList");
 
-/* 画布几何 */
-const CELL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cell"));
-const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap"));
-const STEP = CELL + GAP;
+/* 画布几何：由 fitBoard() 随屏幕宽度动态计算 */
+let CELL = 48, GAP = 5, STEP = 53;
+
+function fitBoard() {
+  const wrap = document.querySelector(".game-wrap");
+  if (!wrap) return;
+  const avail = wrap.clientWidth - 24;   // 减去 wrap 左右 padding(12*2)
+  const gap = Math.max(3, Math.min(6, Math.round(avail * 0.012)));
+  const maxCell = Math.min(52, Math.floor((avail - gap * 7 - 24) / 8));  // 24=棋盘外框 padding(20)+边框(4)
+  const cell = Math.max(24, maxCell);
+  const root = document.documentElement;
+  root.style.setProperty("--cell", cell + "px");
+  root.style.setProperty("--gap", gap + "px");
+  CELL = cell; GAP = gap; STEP = cell + gap;
+  boardEl.querySelectorAll(".tile").forEach(el => {
+    const r = Number(el.dataset.r), c = Number(el.dataset.c);
+    el.style.setProperty("--tx", (c * STEP) + "px");
+    el.style.setProperty("--ty", (r * STEP) + "px");
+  });
+}
+window.addEventListener("resize", fitBoard);
 
 /* ============ 音效 (Web Audio) ============ */
 let audioCtx = null;
@@ -897,6 +913,7 @@ document.addEventListener("pointercancel", onBoardPointerCancel);
 for (let i = 0; i < ROWS*COLS; i++) cellGridEl.appendChild(document.createElement("i"));
 
 /* 初始化首屏棋盘预览 + 关卡选择 */
+fitBoard();
 loadProgress();
 initBoard();
 renderAll();
