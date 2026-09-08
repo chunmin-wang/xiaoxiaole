@@ -2,891 +2,587 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>糖果消消乐 · Candy Match</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>糖果消消乐</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  :root {
-    --cell: 56px;
-    --gap: 6px;
-    --board-pad: 10px;
-    --accent: #ff6fb5;
-    --accent2: #ffd166;
-    --bg1: #5b2a86;
-    --bg2: #b23a9e;
-  }
   html, body { height: 100%; }
   body {
-    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
-    background: linear-gradient(160deg, #5b2a86 0%, #a2379c 55%, #e2588b 100%);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    overflow: hidden;
-    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(160deg, #2b1055 0%, #7597de 50%, #ff8fbc 100%);
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 12px; overflow-x: hidden;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
   }
-  /* floating bokeh background */
-  body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background:
-      radial-gradient(circle at 12% 18%, rgba(255,255,255,.16) 0, transparent 42px),
-      radial-gradient(circle at 85% 12%, rgba(255,255,255,.12) 0, transparent 60px),
-      radial-gradient(circle at 78% 82%, rgba(255,255,255,.14) 0, transparent 50px),
-      radial-gradient(circle at 22% 78%, rgba(255,255,255,.10) 0, transparent 45px);
-  }
-  .game-wrap { position: relative; z-index: 1; }
-
+  .game-wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .header { width: 100%; text-align: center; }
+  .title { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.35); letter-spacing: 2px; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,.85); margin-top: 2px; }
   .hud {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 14px;
+    width: 100%; display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.18); border-radius: 14px; padding: 8px 14px;
+    color: #fff; font-size: 14px; font-weight: 700; backdrop-filter: blur(6px);
   }
-  .stat {
-    background: rgba(255,255,255,.14);
-    border: 1px solid rgba(255,255,255,.28);
-    border-radius: 14px;
-    padding: 8px 14px; min-width: 96px; text-align: center;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  .hud .score span { font-size: 18px; }
+  .hud .moves span { font-size: 18px; }
+  .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,.2); border-radius: 4px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffd86f, #ff9a3d); border-radius: 4px; transition: width .4s ease; }
+  .board-container {
+    position: relative; width: 100%; aspect-ratio: 1 / 1;
+    background: rgba(0,0,0,.22); border-radius: 16px; padding: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.35);
   }
-  .stat .label { font-size: 11px; opacity: .85; letter-spacing: 1px; }
-  .stat .value { font-size: 22px; font-weight: 800; line-height: 1.15; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
-  .stat.target .value { font-size: 17px; }
-  .title-tag {
-    font-size: 20px; font-weight: 900; letter-spacing: 1px;
-    text-shadow: 0 3px 0 rgba(0,0,0,.18);
-    white-space: nowrap;
-  }
-
-  .board-box {
-    position: relative;
-    background: rgba(255,255,255,.13);
-    border: 2px solid rgba(255,255,255,.35);
-    border-radius: 20px;
-    padding: var(--board-pad);
-    box-shadow: 0 18px 50px rgba(0,0,0,.4), inset 0 0 30px rgba(255,255,255,.08);
-  }
-  .board {
-    position: relative;
-    width: calc(var(--cell) * 8 + var(--gap) * 7);
-    height: calc(var(--cell) * 8 + var(--gap) * 7);
-    background: rgba(30,10,50,.25);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  /* underlying grid dots */
-  .cell-grid {
-    position: absolute; inset: 0;
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    gap: var(--gap);
-    padding: 0;
-  }
-  .cell-grid i {
-    background: rgba(255,255,255,.05);
-    border-radius: 10px;
-  }
+  .board { position: relative; width: 100%; height: 100%; touch-action: none; }
   .tile {
-    position: absolute;
-    width: var(--cell);
-    height: var(--cell);
-    border-radius: 12px;
+    position: absolute; width: 12.5%; height: 12.5%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 32px;
-    cursor: pointer;
-    transition: transform .18s ease, box-shadow .18s ease, opacity .25s ease, filter .18s ease;
-    will-change: transform;
-    z-index: 2;
-    /* 位置由 --tx/--ty 控制，所有缩放动画都必须与位移组合，避免选中/消除时跳到左上角 */
+    font-size: 0; cursor: pointer; touch-action: none;
     transform: translate(var(--tx, 0px), var(--ty, 0px));
-    background: rgba(255,255,255,.08);
-    box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.22);
-    text-shadow: 0 2px 6px rgba(0,0,0,.35);
+    transition: transform .22s cubic-bezier(.2,.8,.3,1.15);
   }
-  .tile .gem { line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
-  .tile.selected {
-    outline: 3px solid #fff;
-    outline-offset: -1px;
-    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.14);
-    box-shadow: 0 0 0 4px rgba(255,255,255,.35), 0 8px 20px rgba(0,0,0,.4);
-    z-index: 6;
-    animation: pulse 0.9s ease-in-out infinite;
+  .tile .candy {
+    width: 86%; height: 86%; display: flex; align-items: center; justify-content: center;
+    font-size: 30px; border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.18);
+    transition: transform .15s ease, background .15s ease;
   }
-  .tile.pressed {
-    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.1);
-    box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 8px 22px rgba(0,0,0,.45);
-    z-index: 6;
+  .tile.selected { z-index: 3; }
+  .tile.selected .candy {
+    transform: translate(var(--tx,0px), var(--ty,0px)) scale(1.18);
+    background: #ffe08a; box-shadow: 0 0 0 3px #ff9a3d, 0 4px 12px rgba(255,154,61,.5);
   }
-  @keyframes pulse {
-    0%,100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.12); }
-    50% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.18); }
+  .tile.swap .candy {
+    animation: swapAnim .3s ease;
   }
-  .tile.hint {
-    animation: hintPop 1.1s ease-in-out infinite;
+  .tile.pop .candy {
+    animation: popAnim .4s ease forwards;
   }
-  @keyframes hintPop {
-    0%,100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1); box-shadow: 0 0 0 0 rgba(255,220,80,.7); }
-    50% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.12); box-shadow: 0 0 0 8px rgba(255,220,80,0); }
+  .tile.hint { z-index: 2; }
+  .tile.hint .candy {
+    animation: hintAnim 1s ease infinite;
   }
-  .tile.pop {
-    animation: popAnim .35s ease forwards;
-    z-index: 5;
+  @keyframes swapAnim {
+    0% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(.9); }
+    100% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(1); }
   }
   @keyframes popAnim {
-    0% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1); opacity: 1; }
-    40% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.3) rotate(10deg); opacity: 1; }
-    100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(0); opacity: 0; }
+    0% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(1); opacity: 1; }
+    50% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(1.3); opacity: 1; }
+    100% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(0); opacity: 0; }
   }
-
-  .score-pop {
-    position: absolute;
-    font-weight: 900;
-    font-size: 26px;
-    color: #ffe66d;
-    text-shadow: 0 2px 0 rgba(120,40,0,.5), 0 4px 14px rgba(0,0,0,.5);
-    pointer-events: none;
-    z-index: 20;
-    animation: floatUp 0.9s ease-out forwards;
+  @keyframes hintAnim {
+    0%, 100% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(1); }
+    50% { transform: translate(var(--tx,0px), var(--ty,0px)) scale(1.12); }
   }
-  @keyframes floatUp {
-    0% { transform: translateY(0) scale(.6); opacity: 0; }
-    20% { transform: translateY(-10px) scale(1.15); opacity: 1; }
-    100% { transform: translateY(-60px) scale(1); opacity: 0; }
-  }
-  .combo-banner {
-    position: absolute; left: 50%; top: 40%;
-    transform: translate(-50%, -50%);
-    font-size: 30px; font-weight: 900;
-    color: #fff; letter-spacing: 2px;
-    text-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 24px rgba(255,215,0,.9);
-    z-index: 30; pointer-events: none;
-    animation: comboPop 1.1s ease forwards;
-    white-space: nowrap;
-  }
-  @keyframes comboPop {
-    0% { transform: translate(-50%,-50%) scale(.3) rotate(-8deg); opacity: 0; }
-    25% { transform: translate(-50%,-50%) scale(1.25) rotate(3deg); opacity: 1; }
-    45% { transform: translate(-50%,-50%) scale(1) rotate(0); opacity: 1; }
-    80% { transform: translate(-50%,-50%) scale(1.05); opacity: 1; }
-    100% { transform: translate(-50%,-50%) scale(1.15); opacity: 0; }
-  }
-
-  .controls {
-    display: flex; gap: 10px; margin-top: 14px; justify-content: center;
-  }
-  .btn {
-    flex: 1;
-    border: none; cursor: pointer;
-    background: linear-gradient(180deg, #ffd166, #ff9f43);
-    color: #6b3b00; font-weight: 800; font-size: 16px;
-    padding: 11px 0; border-radius: 13px;
-    box-shadow: 0 5px 0 #d17f2a, 0 8px 18px rgba(0,0,0,.3);
-    transition: transform .08s ease, box-shadow .08s ease;
-    letter-spacing: 1px;
-  }
-  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #d17f2a; }
-  .btn.secondary { background: linear-gradient(180deg,#8fd3ff,#4aa3ff); color: #073a63; box-shadow: 0 5px 0 #2f7dd0; }
-  .btn.secondary:active { box-shadow: 0 1px 0 #2f7dd0; }
-
-  /* overlay */
   .overlay {
-    position: fixed; inset: 0; z-index: 100;
-    background: rgba(30,8,50,.72);
-    backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center;
-    transition: opacity .3s ease;
+    position: fixed; inset: 0; background: rgba(20,10,40,.72);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
   }
-  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay.show { display: flex; }
   .panel {
-    background: linear-gradient(180deg, #7b2f9e, #5b1f7d);
-    border: 2px solid rgba(255,255,255,.4);
-    border-radius: 24px;
-    padding: 34px 38px;
-    text-align: center;
-    max-width: 420px; width: 90%;
-    box-shadow: 0 24px 70px rgba(0,0,0,.55);
-    animation: panelIn .35s ease;
+    width: 100%; max-width: 360px; background: linear-gradient(160deg, #fff 0%, #ffe9f2 100%);
+    border-radius: 22px; padding: 26px 22px; text-align: center;
+    box-shadow: 0 16px 48px rgba(0,0,0,.4);
   }
-  @keyframes panelIn {
-    0% { transform: scale(.7); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+  .panel h2 { font-size: 26px; color: #d6336c; margin-bottom: 6px; }
+  .panel p { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .btn {
+    display: inline-block; border: none; border-radius: 12px; padding: 12px 26px;
+    font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
+    background: linear-gradient(135deg, #ff6b9d, #ff2e63);
+    box-shadow: 0 6px 16px rgba(255,46,99,.35);
+    transition: transform .12s ease, box-shadow .12s ease;
   }
-  .panel h1 { font-size: 34px; letter-spacing: 2px; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
-  .panel .sub { margin-top: 10px; font-size: 15px; opacity: .92; line-height: 1.6; }
-  .panel .big { font-size: 20px; font-weight: 800; margin-top: 12px; }
-  .panel .rule {
-    background: rgba(255,255,255,.1); border-radius: 12px; padding: 12px 14px;
-    margin: 16px 0; font-size: 13.5px; line-height: 1.7; text-align: left;
-  }
-  .panel .rule b { color: #ffe66d; }
-  .panel .btn { width: 100%; margin-top: 6px; font-size: 18px; }
-  .stars { font-size: 40px; margin: 10px 0; letter-spacing: 6px; }
-
-  /* 关卡选择 */
-  .level-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .btn:active { transform: scale(.94); }
+  .btn.secondary { background: linear-gradient(135deg, #7f8cff, #5c6bc0); box-shadow: 0 6px 16px rgba(92,107,192,.35); }
+  .btn.small { padding: 8px 16px; font-size: 13px; }
+  .stars { font-size: 40px; letter-spacing: 6px; margin: 8px 0; }
+  .stars .off { filter: grayscale(1); opacity: .35; }
+  .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0; }
   .level-card {
-    background: rgba(255,255,255,.1);
-    border: 2px solid rgba(255,255,255,.28);
-    border-radius: 14px;
-    padding: 10px 16px;
-    display: flex; align-items: center; justify-content: space-between;
-    cursor: pointer;
-    transition: transform .1s ease, border-color .1s ease, background .1s ease;
+    background: #fff; border: 2px solid #eee; border-radius: 14px; padding: 12px 6px;
+    cursor: pointer; transition: transform .12s ease, border-color .12s ease;
   }
-  .level-card:hover { transform: scale(1.02); border-color: rgba(255,255,255,.5); }
+  .level-card:active { transform: scale(.95); }
   .level-card.locked { opacity: .45; cursor: not-allowed; }
-  .level-card .lv-name { font-weight: 800; font-size: 16px; }
-  .level-card .lv-info { font-size: 12px; opacity: .85; margin-top: 2px; }
-  .level-card .lv-stars { font-size: 17px; letter-spacing: 2px; margin: 0 10px; }
-  .level-card .play { font-size: 20px; color: #ffe66d; }
-
-  /* confetti */
-  .confetti {
-    position: fixed; top: -20px; width: 10px; height: 14px; z-index: 90;
-    pointer-events: none; opacity: .95;
-    animation: fall linear forwards;
-  }
-  @keyframes fall {
-    to { transform: translateY(110vh) rotate(720deg); }
-  }
-
-  @media (max-width: 520px) {
-    :root { --cell: 44px; --gap: 5px; }
-    .tile { font-size: 26px; }
-    .title-tag { font-size: 16px; }
-    .stat { min-width: 76px; padding: 6px 8px; }
-    .stat .value { font-size: 18px; }
-    .stat.target .value { font-size: 15px; }
-  }
+  .level-card .lc-name { font-size: 13px; font-weight: 800; color: #333; }
+  .level-card .lc-meta { font-size: 11px; color: #999; margin-top: 4px; }
+  .level-card .lc-stars { font-size: 14px; letter-spacing: 2px; margin-top: 4px; }
+  .tip { font-size: 12px; color: rgba(255,255,255,.8); }
   @media (max-width: 400px) {
-    :root { --cell: 36px; --gap: 4px; }
-    .tile { font-size: 22px; }
+    .title { font-size: 22px; }
+    .tile .candy { font-size: 24px; }
+    .panel { padding: 20px 16px; }
   }
 </style>
 </head>
 <body>
-
 <div class="game-wrap">
+  <div class="header">
+    <div class="title">🍬 糖果消消乐</div>
+    <div class="subtitle" id="levelName">第 1 关 · 甜蜜初尝</div>
+  </div>
   <div class="hud">
-    <div class="stat"><div class="label">得分</div><div class="value" id="score">0</div></div>
-    <div class="title-tag" id="levelTag">🍬 糖果消消乐</div>
-    <div class="stat target"><div class="label">目标</div><div class="value" id="target">1000</div></div>
-    <div class="stat"><div class="label">剩余步数</div><div class="value" id="moves">20</div></div>
+    <div class="score">🍭 得分 <span id="score">0</span></div>
+    <div class="moves">🎯 步数 <span id="moves">0</span></div>
   </div>
-
-  <div class="board-box">
-    <div class="board" id="board">
-      <div class="cell-grid" id="cellGrid"></div>
-    </div>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+  <div class="board-container">
+    <div class="board" id="board"></div>
   </div>
-
-  <div class="controls">
-    <button class="btn secondary" id="hintBtn">💡 提示</button>
-    <button class="btn secondary" id="restartBtn">🔄 重开</button>
-    <button class="btn secondary" id="levelBtn">🏠 选关</button>
-  </div>
+  <div class="tip">💡 选中一颗糖果，再点相邻糖果即可交换；也可以按住拖动</div>
 </div>
 
-<!-- start overlay -->
-<div class="overlay" id="startOverlay">
-  <div class="panel">
-    <h1>🍭 糖果消消乐</h1>
-    <div class="sub">闯关模式 · 三消 · 连击加成</div>
-    <div class="rule">
-      <b>玩法：</b>点击选中糖果，或<b>按住并拖动</b>糖果交换位置。<br>
-      三个及以上相同糖果连成一线即可消除，连续消除触发<b>连击加成</b>！<br>
-      在<b>限定步数</b>内达到<b>目标分数</b>即可通关 ⭐
-    </div>
-    <div class="level-list" id="levelList"></div>
-  </div>
-</div>
-
-<!-- result overlay -->
-<div class="overlay hidden" id="resultOverlay">
-  <div class="panel">
-    <div class="stars" id="stars">⭐⭐⭐</div>
-    <h1 id="resultTitle">通关！</h1>
-    <div class="big" id="resultScore">得分 0</div>
-    <div class="sub" id="resultMsg"></div>
-    <button class="btn" id="againBtn">🔁 再来一局</button>
+<div class="overlay" id="overlay">
+  <div class="panel" id="panel">
+    <h2 id="overlayTitle"></h2>
+    <div class="stars" id="stars"></div>
+    <p id="overlayText"></p>
+    <div class="level-grid" id="levelGrid"></div>
+    <button class="btn" id="overlayBtn">开始游戏</button>
   </div>
 </div>
 
 <script>
-"use strict";
-/* ============ 常量 ============ */
-const ROWS = 8, COLS = 8;
-let TYPES = 6;                 // 当前关卡糖果种类数（随关卡变化）
-const CANDIES = ["🍓","🍋","🍇","🍊","🍏","🍉","🍒"];  // 全部为全平台通用水果 emoji
-const COLORS = ["#ff5d7e","#ffd34d","#b26bff","#ff9a3d","#5fb8ff","#7ed957","#ff4f8b"];
-/* 关卡配置：糖果种类 / 步数 / 目标分数 */
-const LEVELS = [
-  { name:"甜蜜初尝", types:6, moves:20, target:1200 },
-  { name:"水果风暴", types:7, moves:20, target:1600 },
-  { name:"糖果盛宴", types:7, moves:18, target:2000 },
-];
-const DRAG_THRESHOLD = 18;     // 按住后拖动多少像素触发交换
+(function () {
+  "use strict";
+  var ROWS = 8, COLS = 8;
+  var CANDIES = ["🍓", "🍋", "🍇", "🍊", "🍏", "🍉", "🍒"];
+  var LEVELS = [
+    { name: "甜蜜初尝", types: 6, moves: 20, target: 1200 },
+    { name: "水果风暴", types: 7, moves: 20, target: 1600 },
+    { name: "糖果盛宴", types: 7, moves: 18, target: 2000 }
+  ];
+  var TYPES = 6;
+  var DRAG_THRESHOLD = 18;
+  var PROGRESS_KEY = "xiaoxiaole_progress";
 
-/* ============ 状态 ============ */
-let board = [];           // board[r][c] = type 或 -1(空)
-let score = 0, movesLeft = 20;
-let selected = null;      // {r,c}
-let busy = false;         // 动画进行中
-let hintTimer = null;
-let gameEnded = false;
-let currentLevel = 0;     // 当前关卡（0-based）
-let unlockedLevels = 1;   // 已解锁关卡数
-let levelStars = [0,0,0]; // 各关最佳星级
-let dragState = null;     // 拖动状态 {startR,startC,startX,startY,consumed,el}
+  var board = document.getElementById("board");
+  var overlay = document.getElementById("overlay");
+  var panel = document.getElementById("panel");
+  var overlayTitle = document.getElementById("overlayTitle");
+  var starsEl = document.getElementById("stars");
+  var overlayText = document.getElementById("overlayText");
+  var levelGrid = document.getElementById("levelGrid");
+  var overlayBtn = document.getElementById("overlayBtn");
+  var scoreEl = document.getElementById("score");
+  var movesEl = document.getElementById("moves");
+  var levelNameEl = document.getElementById("levelName");
+  var progressFill = document.getElementById("progressFill");
 
-const boardEl = document.getElementById("board");
-const cellGridEl = document.getElementById("cellGrid");
-const scoreEl = document.getElementById("score");
-const targetEl = document.getElementById("target");
-const movesEl = document.getElementById("moves");
-const levelTagEl = document.getElementById("levelTag");
-const levelListEl = document.getElementById("levelList");
+  var grid = [];
+  var tiles = [];
+  var score = 0;
+  var moves = 0;
+  var levelIndex = 0;
+  var locked = false;
+  var selected = null;
+  var dragState = null;
+  var progress = loadProgress();
 
-/* 画布几何 */
-const CELL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cell"));
-const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap"));
-const STEP = CELL + GAP;
-
-/* ============ 音效 (Web Audio) ============ */
-let audioCtx = null;
-function beep(freq, dur, type="sine", vol=0.12) {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + dur);
-  } catch(e) {}
-}
-function sfxSelect() { beep(520, .07, "sine", .08); }
-function sfxSwap()   { beep(660, .06, "triangle", .08); }
-function sfxBad()    { beep(180, .16, "sawtooth", .08); }
-function sfxMatch(n) { const base = 500 + n*60; [0,1,2].forEach(i=>setTimeout(()=>beep(base+i*90,.09,"triangle",.1), i*45)); }
-function sfxCombo(n) { beep(300+n*120, .18, "square", .08); }
-function sfxWin()    { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.16,"triangle",.12),i*110)); }
-function sfxLose()   { [400,320,260,180].forEach((f,i)=>setTimeout(()=>beep(f,.2,"sine",.1),i*130)); }
-
-/* ============ 棋盘逻辑 ============ */
-function randType() { return Math.floor(Math.random() * TYPES); }
-
-function initBoard() {
-  board = [];
-  for (let r = 0; r < ROWS; r++) {
-    board[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      let t;
-      do {
-        t = randType();
-      } while (
-        (c >= 2 && board[r][c-1] === t && board[r][c-2] === t) ||
-        (r >= 2 && board[r-1][c] === t && board[r-2][c] === t)
-      );
-      board[r][c] = t;
-    }
+  function loadProgress() {
+    try {
+      var raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) {
+        var obj = JSON.parse(raw);
+        if (obj && typeof obj.unlocked === "number") return { unlocked: obj.unlocked, stars: obj.stars || {} };
+      }
+    } catch (e) {}
+    return { unlocked: 1, stars: {} };
   }
-}
 
-function inBounds(r,c){ return r>=0 && r<ROWS && c>=0 && c<COLS; }
-
-function findMatches() {
-  const matches = new Set();
-  for (let r = 0; r < ROWS; r++) {
-    let c = 0;
-    while (c < COLS) {
-      const t = board[r][c];
-      let len = 1;
-      while (c+len < COLS && board[r][c+len] === t) len++;
-      if (len >= 3) for (let k=0;k<len;k++) matches.add(r+","+(c+k));
-      c += len;
-    }
+  function saveProgress() {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) {}
   }
-  for (let c = 0; c < COLS; c++) {
-    let r = 0;
-    while (r < ROWS) {
-      const t = board[r][c];
-      let len = 1;
-      while (r+len < ROWS && board[r+len][c] === t) len++;
-      if (len >= 3) for (let k=0;k<len;k++) matches.add((r+k)+","+c);
-      r += len;
-    }
+
+  function candyForLevel(i) {
+    var pool = CANDIES.slice(0, TYPES);
+    return pool[i % pool.length];
   }
-  return matches;
-}
 
-function clearMatches(matches) {
-  let n = 0;
-  matches.forEach(key => {
-    const [r,c] = key.split(",").map(Number);
-    board[r][c] = -1;
-    n++;
-  });
-  return n;
-}
+  function randCandy() {
+    return candyForLevel(Math.floor(Math.random() * TYPES));
+  }
 
-function applyGravity() {
-  for (let c = 0; c < COLS; c++) {
-    let write = ROWS - 1;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r][c] !== -1) {
-        if (write !== r) { board[write][c] = board[r][c]; board[r][c] = -1; }
-        write--;
+  function shuffle() {
+    do {
+      for (var r = 0; r < ROWS; r++) {
+        grid[r] = [];
+        for (var c = 0; c < COLS; c++) grid[r][c] = randCandy();
+      }
+    } while (findAllMatches().length > 0);
+  }
+
+  function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+
+  function cellMatches(r, c) {
+    var t = grid[r][c];
+    if (t == null) return false;
+    if (c - 2 >= 0 && grid[r][c-1] === t && grid[r][c-2] === t) return true;
+    if (c + 2 < COLS && grid[r][c+1] === t && grid[r][c+2] === t) return true;
+    if (r - 2 >= 0 && grid[r-1][c] === t && grid[r-2][c] === t) return true;
+    if (r + 2 < ROWS && grid[r+1][c] === t && grid[r+2][c] === t) return true;
+    return false;
+  }
+
+  function findAllMatches() {
+    var matches = [];
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (grid[r][c] != null && cellMatches(r, c)) matches.push([r, c]);
       }
     }
-    for (let r = write; r >= 0; r--) {
-      board[r][c] = randType();
+    return matches;
+  }
+
+  function collectRuns() {
+    var hit = {};
+    var runs = [];
+    function key(r, c) { return r + "," + c; }
+    for (var r = 0; r < ROWS; r++) {
+      var run = 1;
+      for (var c = 1; c <= COLS; c++) {
+        if (c < COLS && grid[r][c] != null && grid[r][c] === grid[r][c-1]) { run++; }
+        else {
+          if (run >= 3) {
+            var cells = [];
+            for (var k = c - run; k < c; k++) { cells.push([r, k]); hit[key(r, k)] = true; }
+            runs.push(cells);
+          }
+          run = 1;
+        }
+      }
+    }
+    for (var cc = 0; cc < COLS; cc++) {
+      var run2 = 1;
+      for (var rr = 1; rr <= ROWS; rr++) {
+        if (rr < ROWS && grid[rr][cc] != null && grid[rr][cc] === grid[rr-1][cc]) { run2++; }
+        else {
+          if (run2 >= 3) {
+            var cells2 = [];
+            for (var k2 = rr - run2; k2 < rr; k2++) { cells2.push([k2, cc]); hit[key(k2, cc)] = true; }
+            runs.push(cells2);
+          }
+          run2 = 1;
+        }
+      }
+    }
+    return { runs: runs, hit: hit };
+  }
+
+  function swap(r1, c1, r2, c2) {
+    var t = grid[r1][c1];
+    grid[r1][c1] = grid[r2][c2];
+    grid[r2][c2] = t;
+    updateTile(r1, c1);
+    updateTile(r2, c2);
+  }
+
+  function canSwap(r1, c1, r2, c2) {
+    if (!inBounds(r1, c1) || !inBounds(r2, c2)) return false;
+    if (Math.abs(r1 - r2) + Math.abs(c1 - c2) !== 1) return false;
+    if (grid[r1][c1] == null || grid[r2][c2] == null) return false;
+    swap(r1, c1, r2, c2);
+    var ok = findAllMatches().length > 0;
+    swap(r1, c1, r2, c2);
+    return ok;
+  }
+
+  function applyGravity() {
+    for (var c = 0; c < COLS; c++) {
+      var write = ROWS - 1;
+      for (var r = ROWS - 1; r >= 0; r--) {
+        if (grid[r][c] != null) {
+          if (write !== r) {
+            grid[write][c] = grid[r][c];
+            grid[r][c] = null;
+          }
+          write--;
+        }
+      }
+      for (var rr = write; rr >= 0; rr--) grid[rr][c] = randCandy();
     }
   }
-}
 
-function hasAnyMove() {
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    for (const [dr,dc] of [[0,1],[1,0]]) {
-      const r2=r+dr, c2=c+dc;
-      if (!inBounds(r2,c2)) continue;
-      swap(r,c,r2,c2);
-      const has = findMatches().size > 0;
-      swap(r,c,r2,c2);
-      if (has) return true;
+  function render() {
+    board.innerHTML = "";
+    tiles = [];
+    var size = 100 / COLS;
+    for (var r = 0; r < ROWS; r++) {
+      tiles[r] = [];
+      for (var c = 0; c < COLS; c++) {
+        (function (rr, cc) {
+          var el = document.createElement("div");
+          el.className = "tile";
+          el.style.width = size + "%";
+          el.style.height = size + "%";
+          el.style.left = (cc * size) + "%";
+          el.style.top = (rr * size) + "%";
+          el.style.setProperty("--tx", (cc * size) + "%");
+          el.style.setProperty("--ty", (rr * size) + "%");
+          var candy = document.createElement("div");
+          candy.className = "candy";
+          candy.textContent = grid[rr][cc] || "";
+          el.appendChild(candy);
+          el.dataset.r = rr;
+          el.dataset.c = cc;
+          el.addEventListener("pointerdown", onPointerDown);
+          board.appendChild(el);
+          tiles[rr][cc] = el;
+        })(r, c);
+      }
     }
   }
-  return false;
-}
 
-function swap(r,c,r2,c2){ const t=board[r][c]; board[r][c]=board[r2][c2]; board[r2][c2]=t; }
-
-/* ============ 渲染 ============ */
-function px(r,c){ return { x: c*STEP, y: r*STEP }; }
-
-function renderAll() {
-  selected = null;               // 清空选中状态（旧格子已全部移除）
-  dragState = null;              // 清空拖动状态
-  boardEl.querySelectorAll(".tile").forEach(el=>el.remove());
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    createTile(r, c, board[r][c], true);
+  function updateTile(r, c) {
+    if (!tiles[r] || !tiles[r][c]) return;
+    var candy = tiles[r][c].querySelector(".candy");
+    if (candy) candy.textContent = grid[r][c] || "";
   }
-}
 
-function createTile(r, c, type, instant) {
-  const el = document.createElement("div");
-  el.className = "tile";
-  el.dataset.r = r; el.dataset.c = c;
-  const p = px(r,c);
-  el.style.setProperty("--tx", p.x + "px");
-  el.style.setProperty("--ty", p.y + "px");
-  if (instant) { el.style.transition = "none"; requestAnimationFrame(()=>requestAnimationFrame(()=>el.style.transition="")); }
-  el.innerHTML = `<span class="gem">${CANDIES[type]}</span>`;
-  // 注意：必须在点击/拖动时读取元素当前 data-r/data-c，不能闭包捕获创建时的坐标
-  // （否则糖果下落后操作会触发旧位置的逻辑，导致换错格）
-  el.addEventListener("pointerdown", (e) => onTilePointerDown(e, Number(el.dataset.r), Number(el.dataset.c)));
-  boardEl.appendChild(el);
-  return el;
-}
-
-function moveTileTo(el, r, c) {
-  el.dataset.r = r; el.dataset.c = c;
-  const p = px(r,c);
-  el.style.setProperty("--tx", p.x + "px");
-  el.style.setProperty("--ty", p.y + "px");
-}
-
-function tileAt(r,c){ return boardEl.querySelector(`.tile[data-r="${r}"][data-c="${c}"]`); }
-
-/* ============ 交互（点击 + 拖动） ============ */
-function onTilePointerDown(e, r, c) {
-  if (busy || gameEnded) return;
-  const el = tileAt(r, c);
-  if (!el) return;
-  if (dragState) { dragState.el.classList.remove("pressed"); dragState = null; }
-  dragState = { startR:r, startC:c, startX:e.clientX, startY:e.clientY, consumed:false, el:el };
-  el.classList.add("pressed");
-  try { el.setPointerCapture(e.pointerId); } catch(_) {}
-}
-
-function onBoardPointerMove(e) {
-  if (!dragState || dragState.consumed || busy) return;
-  const dx = e.clientX - dragState.startX;
-  const dy = e.clientY - dragState.startY;
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAG_THRESHOLD) return;
-  // 判断主方向
-  let dr = 0, dc = 0;
-  if (Math.abs(dx) >= Math.abs(dy)) dc = dx > 0 ? 1 : -1;
-  else dr = dy > 0 ? 1 : -1;
-  const tr = dragState.startR + dr, tc = dragState.startC + dc;
-  if (!inBounds(tr, tc)) return;   // 拖向棋盘外：继续等待手势回正
-  const d = dragState;
-  d.consumed = true;
-  d.el.classList.remove("pressed");
-  if (selected) { const s = tileAt(selected.r, selected.c); if (s) s.classList.remove("selected"); selected = null; }
-  clearHint();
-  trySwap(d.startR, d.startC, tr, tc);
-  dragState = null;
-}
-
-function onBoardPointerUp() {
-  if (!dragState) return;
-  const d = dragState;
-  dragState = null;
-  d.el.classList.remove("pressed");
-  if (d.consumed) return;
-  // 轻点：走点击选中/交换逻辑（实时读取当前坐标）
-  onTileClick(Number(d.el.dataset.r), Number(d.el.dataset.c));
-}
-
-function onBoardPointerCancel() {
-  if (dragState) { dragState.el.classList.remove("pressed"); dragState = null; }
-}
-
-function onTileClick(r, c) {
-  if (busy || gameEnded) return;
-  const el = tileAt(r, c);
-  if (!el) return;               // 该格已被消除/重组移除，忽略本次点击
-  if (!selected) {
-    selected = {r,c};
-    el.classList.add("selected");
-    sfxSelect();
-    return;
-  }
-  const s = selected;
-  if (s.r === r && s.c === c) {
-    el.classList.remove("selected");
-    selected = null;
-    return;
-  }
-  // 相邻？
-  const adj = Math.abs(s.r-r) + Math.abs(s.c-c) === 1;
-  if (!adj) {
-    // 重新选择
-    const selEl = tileAt(s.r, s.c);
-    if (selEl) selEl.classList.remove("selected");
-    selected = {r,c};
-    el.classList.add("selected");
-    sfxSelect();
-    return;
-  }
-  const selEl = tileAt(s.r, s.c);
-  if (selEl) selEl.classList.remove("selected");
-  selected = null;
-  trySwap(s.r, s.c, r, c);
-}
-
-async function trySwap(r1,c1,r2,c2) {
-  busy = true;
-  const a = tileAt(r1,c1), b = tileAt(r2,c2);
-  if (!a || !b) { busy = false; return; }
-  swap(r1,c1,r2,c2);
-  moveTileTo(a, r2, c2);
-  moveTileTo(b, r1, c1);
-  await wait(200);
-  if (findMatches().size === 0) {
-    // 无效交换，换回
-    sfxBad();
-    swap(r1,c1,r2,c2);
-    moveTileTo(a, r1, c1);
-    moveTileTo(b, r2, c2);
-    await wait(200);
-    busy = false;
-    return;
-  }
-  sfxSwap();
-  movesLeft--;
-  updateHud();
-  await resolveBoard(0);
-  busy = false;
-  if (!gameEnded) checkGameState();
-}
-
-async function resolveBoard(combo) {
-  const matches = findMatches();
-  if (matches.size === 0) {
-    // 确保有可走步数
-    if (!hasAnyMove()) {
-      await reshuffle();
-      if (findMatches().size > 0) await resolveBoard(0);
+  function onPointerDown(ev) {
+    if (locked) return;
+    if (selected) {
+      selected.classList.remove("selected");
+      selected = null;
     }
-    return;
+    var el = ev.currentTarget;
+    var r = Number(el.dataset.r), c = Number(el.dataset.c);
+    dragState = {
+      startR: r, startC: c, startX: ev.clientX, startY: ev.clientY,
+      consumed: false, el: el
+    };
+    el.setPointerCapture && el.setPointerCapture(ev.pointerId);
   }
-  combo++;
-  const n = matches.size;
-  const points = n * 10 * combo;
-  score += points;
-  // 弹分 & 音效
-  const rect = boardEl.getBoundingClientRect();
-  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/3;
-  showScorePop(points, cx, cy, combo);
-  if (combo >= 2) showCombo(combo);
-  sfxMatch(combo); if (combo >= 2) sfxCombo(combo);
 
-  // 消除动画
-  const els = [];
-  matches.forEach(key => {
-    const [r,c] = key.split(",").map(Number);
-    const el = tileAt(r,c);
-    if (el) { el.classList.add("pop"); els.push(el); }
-  });
-  clearMatches(matches);
-  await wait(300);
-  els.forEach(el=>el.remove());
-
-  // 下落 + 补充
-  applyGravity();
-  for (let c = 0; c < COLS; c++) {
-    // 收集该列现存格子（自底向上，保持原相对顺序）
-    const colTiles = [];
-    for (let r = ROWS - 1; r >= 0; r--) {
-      const el = tileAt(r, c);
-      if (el) colTiles.push(el);
-    }
-    // 现存在底端自下而上落位
-    let targetRow = ROWS - 1;
-    for (const el of colTiles) {
-      moveTileTo(el, targetRow, c);
-      targetRow--;
-    }
-    // 顶部缺口补新糖果（从棋盘上方落入）
-    for (let r = targetRow; r >= 0; r--) {
-      const type = board[r][c];
-      const nEl = createTile(r, c, type, false);
-      nEl.style.transition = "none";
-      const above = px(r - ROWS - 2, c);
-      nEl.style.setProperty("--tx", above.x + "px");
-      nEl.style.setProperty("--ty", above.y + "px");
-      void nEl.offsetWidth; // 强制回流，确保初始位置生效
-      nEl.style.transition = "transform .3s ease";
-      moveTileTo(nEl, r, c);
-    }
-  }
-  updateHud();
-  await wait(330);
-  await resolveBoard(combo);
-}
-
-async function reshuffle() {
-  // 重新洗牌直到可走
-  let guard = 0;
-  do {
-    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) board[r][c] = randType();
-    guard++;
-  } while ((findMatches().size > 0 || !hasAnyMove()) && guard < 100);
-  renderAll();
-  await wait(120);
-}
-
-/* ============ 特效 ============ */
-function wait(ms){ return new Promise(res=>setTimeout(res, ms)); }
-
-function showScorePop(points, x, y, combo) {
-  const el = document.createElement("div");
-  el.className = "score-pop";
-  el.textContent = "+" + points;
-  el.style.left = (x - 30 + (Math.random()*40-20)) + "px";
-  el.style.top = (y + (Math.random()*20-10)) + "px";
-  if (combo >= 2) { el.style.fontSize = "34px"; el.textContent = "+" + points + " 连击×" + combo; }
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 950);
-}
-
-function showCombo(n) {
-  const names = ["", "", "连击 x2！", "三重连击 x3！", "超级连击 x4！", "逆天连击 x5！", "传说连击 x6！"];
-  const el = document.createElement("div");
-  el.className = "combo-banner";
-  el.textContent = names[Math.min(n, names.length-1)] + (n >= 3 ? " 🔥" : "");
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 1100);
-}
-
-function confetti() {
-  const colors = ["#ff5d7e","#ffd34d","#7ed957","#5fb8ff","#b26bff","#ff9a3d","#fff"];
-  for (let i = 0; i < 80; i++) {
-    const c = document.createElement("div");
-    c.className = "confetti";
-    c.style.left = Math.random()*100 + "vw";
-    c.style.background = colors[Math.floor(Math.random()*colors.length)];
-    c.style.transform = `rotate(${Math.random()*360}deg)`;
-    c.style.animationDuration = (2 + Math.random()*2) + "s";
-    c.style.animationDelay = (Math.random()*0.8) + "s";
-    c.style.width = (6 + Math.random()*8) + "px";
-    c.style.height = (8 + Math.random()*10) + "px";
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(), 5200);
-  }
-}
-
-/* ============ UI ============ */
-function updateHud() {
-  const lv = LEVELS[currentLevel];
-  scoreEl.textContent = score;
-  movesEl.textContent = movesLeft;
-  targetEl.textContent = lv.target;
-  levelTagEl.textContent = "第 " + (currentLevel + 1) + "/" + LEVELS.length + " 关 · " + lv.name;
-  // 进度条效果：分数颜色变化
-  scoreEl.style.color = score >= lv.target ? "#7dffa8" : "#fff";
-}
-
-function calcStars() {
-  const lv = LEVELS[currentLevel];
-  if (movesLeft >= Math.ceil(lv.moves * 0.25)) return 3;
-  if (movesLeft > 0) return 2;
-  return 1;
-}
-
-function checkGameState() {
-  if (gameEnded) return;
-  const lv = LEVELS[currentLevel];
-  if (score >= lv.target) {
-    gameEnded = true;
-    const st = calcStars();
-    levelStars[currentLevel] = Math.max(levelStars[currentLevel], st);
-    if (currentLevel + 1 < LEVELS.length) unlockedLevels = Math.max(unlockedLevels, currentLevel + 2);
-    saveProgress();
-    sfxWin(); confetti();
-    showResult(true);
-  } else if (movesLeft <= 0) {
-    gameEnded = true;
-    sfxLose();
-    showResult(false);
-  }
-}
-
-function showResult(win) {
-  const overlay = document.getElementById("resultOverlay");
-  const lv = LEVELS[currentLevel];
-  const btn = document.getElementById("againBtn");
-  const title = document.getElementById("resultTitle");
-  const starsEl = document.getElementById("stars");
-  const resultScore = document.getElementById("resultScore");
-  const msg = document.getElementById("resultMsg");
-  if (win) {
-    const st = calcStars();
-    title.textContent = "🎉 通关成功！";
-    starsEl.textContent = "★".repeat(st) + "☆".repeat(3 - st);
-    resultScore.textContent = "得分 " + score + " / 目标 " + lv.target;
-    msg.textContent = "剩余 " + movesLeft + " 步，太棒了！";
-    if (currentLevel + 1 < LEVELS.length) {
-      btn.textContent = "▶ 下一关：" + LEVELS[currentLevel + 1].name;
-      btn.onclick = () => startLevel(currentLevel + 1);
+  function onPointerMove(ev) {
+    if (!dragState || dragState.consumed) return;
+    var dx = ev.clientX - dragState.startX;
+    var dy = ev.clientY - dragState.startY;
+    if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+    var r1 = dragState.startR, c1 = dragState.startC;
+    var r2 = r1, c2 = c1;
+    if (Math.abs(dx) > Math.abs(dy)) { c2 = c1 + (dx > 0 ? 1 : -1); }
+    else { r2 = r1 + (dy > 0 ? 1 : -1); }
+    dragState.consumed = true;
+    if (canSwap(r1, c1, r2, c2)) {
+      doSwap(r1, c1, r2, c2);
     } else {
-      btn.textContent = "🎊 全部通关！再来一次";
-      btn.onclick = () => startLevel(0);
-    }
-  } else {
-    title.textContent = "😢 步数用完了";
-    starsEl.textContent = "💪";
-    resultScore.textContent = "得分 " + score + " / 目标 " + lv.target;
-    msg.textContent = "差一点点，再试一次吧！";
-    btn.textContent = "🔁 再试一次";
-    btn.onclick = () => startLevel(currentLevel);
-  }
-  overlay.classList.remove("hidden");
-}
-
-/* ============ 提示 ============ */
-function findHint() {
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    for (const [dr,dc] of [[0,1],[1,0]]) {
-      const r2=r+dr, c2=c+dc;
-      if (!inBounds(r2,c2)) continue;
-      swap(r,c,r2,c2);
-      const has = findMatches().size > 0;
-      swap(r,c,r2,c2);
-      if (has) return [r,c,r2,c2];
+      markTile(r1, c1);
     }
   }
-  return null;
-}
 
-function showHint() {
-  if (busy || gameEnded) return;
-  clearHint();
-  const h = findHint();
-  if (!h) { showScorePop(0, innerWidth/2, innerHeight/3, 0); return; }
-  const [r1,c1,r2,c2] = h;
-  [tileAt(r1,c1), tileAt(r2,c2)].forEach(el=>el && el.classList.add("hint"));
-  hintTimer = setTimeout(clearHint, 1500);
-}
-function clearHint(){ boardEl.querySelectorAll(".hint").forEach(el=>el.classList.remove("hint")); clearTimeout(hintTimer); }
-
-/* ============ 关卡进度存储 ============ */
-function loadProgress() {
-  try {
-    const d = JSON.parse(localStorage.getItem("xiaoxiaole_progress"));
-    if (d && Array.isArray(d.stars)) {
-      unlockedLevels = d.unlocked || 1;
-      levelStars = d.stars.slice(0, LEVELS.length);
-      while (levelStars.length < LEVELS.length) levelStars.push(0);
+  function onPointerEnd(ev) {
+    if (!dragState) return;
+    var st = dragState;
+    dragState = null;
+    if (st.consumed) return;
+    var el = st.el;
+    var r = Number(el.dataset.r), c = Number(el.dataset.c);
+    if (selected && selected !== el) {
+      var sr = Number(selected.dataset.r), sc = Number(selected.dataset.c);
+      if (Math.abs(sr - r) + Math.abs(sc - c) === 1 && canSwap(sr, sc, r, c)) {
+        doSwap(sr, sc, r, c);
+        return;
+      }
+      selected.classList.remove("selected");
+      selected = null;
     }
-  } catch(e) {}
-}
-function saveProgress() {
-  try {
-    localStorage.setItem("xiaoxiaole_progress", JSON.stringify({ unlocked: unlockedLevels, stars: levelStars }));
-  } catch(e) {}
-}
+    if (selected === el) {
+      selected.classList.remove("selected");
+      selected = null;
+      return;
+    }
+    selected = el;
+    el.classList.add("selected");
+  }
 
-/* ============ 关卡选择 ============ */
-function renderLevelList() {
-  levelListEl.innerHTML = "";
-  LEVELS.forEach((lv, i) => {
-    const unlocked = i < unlockedLevels;
-    const card = document.createElement("div");
-    card.className = "level-card" + (unlocked ? "" : " locked");
-    card.innerHTML =
-      '<div><div class="lv-name">' + (unlocked ? "第 " + (i+1) + " 关" : "🔒") + " · " + lv.name + '</div>' +
-      '<div class="lv-info">目标 ' + lv.target + " 分 · " + lv.moves + " 步 · " + lv.types + " 种糖果</div></div>" +
-      '<div class="lv-stars">' + (unlocked ? "★".repeat(levelStars[i]) + "☆".repeat(3 - levelStars[i]) : "") + "</div>" +
-      '<div class="play">' + (unlocked ? "▶" : "") + "</div>";
-    card.addEventListener("click", () => { if (unlocked) startLevel(i); });
-    levelListEl.appendChild(card);
-  });
-}
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerEnd);
+  document.addEventListener("pointercancel", onPointerEnd);
 
-/* ============ 开始 / 重开 ============ */
-function startLevel(idx) {
-  currentLevel = idx;
-  const lv = LEVELS[idx];
-  TYPES = lv.types;
-  score = 0; movesLeft = lv.moves; gameEnded = false; busy = false;
-  selected = null; dragState = null;
-  initBoard();
-  renderAll();
-  updateHud();
-  document.getElementById("startOverlay").classList.add("hidden");
-  document.getElementById("resultOverlay").classList.add("hidden");
-}
+  function markTile(r, c) {
+    if (locked) return;
+    if (selected) { selected.classList.remove("selected"); selected = null; }
+    selected = tiles[r][c];
+    selected.classList.add("selected");
+    setTimeout(function () {
+      if (selected) { selected.classList.remove("selected"); selected = null; }
+    }, 350);
+  }
 
-function showLevelSelect() {
-  renderLevelList();
-  document.getElementById("startOverlay").classList.remove("hidden");
-  document.getElementById("resultOverlay").classList.add("hidden");
-}
+  function doSwap(r1, c1, r2, c2) {
+    swap(r1, c1, r2, c2);
+    var t1 = tiles[r1][c1], t2 = tiles[r2][c2];
+    t1.classList.add("swap");
+    t2.classList.add("swap");
+    setTimeout(function () { t1.classList.remove("swap"); t2.classList.remove("swap"); }, 320);
+    moves++;
+    updateHUD();
+    resolveBoard();
+  }
 
-/* ============ 事件绑定 ============ */
-document.getElementById("restartBtn").addEventListener("click", () => startLevel(currentLevel));
-document.getElementById("hintBtn").addEventListener("click", showHint);
-document.getElementById("levelBtn").addEventListener("click", showLevelSelect);
-boardEl.addEventListener("pointermove", onBoardPointerMove);
-boardEl.addEventListener("pointerup", onBoardPointerUp);
-boardEl.addEventListener("pointercancel", onBoardPointerCancel);
+  function resolveBoard() {
+    locked = true;
+    var found = collectRuns();
+    if (found.runs.length === 0) {
+      locked = false;
+      checkGameState();
+      return;
+    }
+    var popCells = [];
+    for (var i = 0; i < found.runs.length; i++) {
+      popCells = popCells.concat(found.runs[i]);
+    }
+    var gained = popCells.length * 10;
+    score += gained;
+    updateHUD();
+    popCells.forEach(function (p) {
+      var el = tiles[p[0]][p[1]];
+      el.classList.add("pop");
+    });
+    setTimeout(function () {
+      popCells.forEach(function (p) {
+        grid[p[0]][p[1]] = null;
+        tiles[p[0]][p[1]].classList.remove("pop", "selected");
+        updateTile(p[0], p[1]);
+      });
+      applyGravity();
+      render();
+      selected = null;
+      setTimeout(resolveBoard, 60);
+    }, 400);
+  }
 
-/* 生成网格底纹 */
-for (let i = 0; i < ROWS*COLS; i++) cellGridEl.appendChild(document.createElement("i"));
+  function updateHUD() {
+    scoreEl.textContent = score;
+    movesEl.textContent = moves + " / " + LEVELS[levelIndex].moves;
+    var pct = Math.min(100, Math.round(score / LEVELS[levelIndex].target * 100));
+    progressFill.style.width = pct + "%";
+  }
 
-/* 初始化首屏棋盘预览 + 关卡选择 */
-loadProgress();
-initBoard();
-renderAll();
-updateHud();
-renderLevelList();
+  function checkGameState() {
+    var lv = LEVELS[levelIndex];
+    if (score >= lv.target) {
+      showOverlay("🎉 过关！", lv.name + " 完成", starsFor(lv), true);
+      return;
+    }
+    if (moves >= lv.moves) {
+      showOverlay("😢 步数用尽", "还差 " + (lv.target - score) + " 分，再试一次吧", 0, false);
+    }
+  }
+
+  function starsFor(lv) {
+    var remain = lv.moves - moves;
+    if (remain >= Math.ceil(lv.moves * 0.25)) return 3;
+    if (remain >= 1) return 2;
+    return 1;
+  }
+
+  function renderStars(n) {
+    var html = "";
+    for (var i = 1; i <= 3; i++) html += i <= n ? "⭐" : "<span class=\"off\">⭐</span>";
+    starsEl.innerHTML = html;
+  }
+
+  function showOverlay(title, text, stars, win) {
+    overlayTitle.textContent = title;
+    overlayText.textContent = text;
+    renderStars(stars);
+    buildLevelGrid(win);
+    overlayBtn.textContent = win ? "下一关" : "重新挑战";
+    overlayBtn.onclick = function () {
+      if (win) {
+        if (levelIndex < LEVELS.length - 1) {
+          levelIndex++;
+          if (progress.unlocked < levelIndex + 1) {
+            progress.unlocked = levelIndex + 1;
+            progress.stars[levelIndex] = Math.max(progress.stars[levelIndex] || 0, stars);
+            saveProgress();
+          }
+        }
+        startLevel(levelIndex);
+      } else {
+        startLevel(levelIndex);
+      }
+    };
+    overlay.classList.add("show");
+  }
+
+  function buildLevelGrid(win) {
+    levelGrid.innerHTML = "";
+    for (var i = 0; i < LEVELS.length; i++) {
+      (function (idx) {
+        var card = document.createElement("div");
+        card.className = "level-card" + (idx + 1 > progress.unlocked ? " locked" : "");
+        var s = progress.stars[idx] || 0;
+        card.innerHTML = "<div class=\"lc-name\">" + (idx + 1) + ". " + LEVELS[idx].name + "</div>" +
+          "<div class=\"lc-meta\">目标 " + LEVELS[idx].target + " 分 · " + LEVELS[idx].moves + " 步</div>" +
+          "<div class=\"lc-stars\">" + "⭐".repeat(Math.max(0, s)) + "</div>";
+        card.addEventListener("click", function () {
+          if (idx + 1 <= progress.unlocked) {
+            levelIndex = idx;
+            startLevel(idx);
+          }
+        });
+        levelGrid.appendChild(card);
+      })(i);
+    }
+  }
+
+  function startLevel(idx) {
+    levelIndex = idx;
+    var lv = LEVELS[idx];
+    TYPES = lv.types;
+    score = 0;
+    moves = 0;
+    locked = false;
+    selected = null;
+    dragState = null;
+    levelNameEl.textContent = "第 " + (idx + 1) + " 关 · " + lv.name;
+    shuffle();
+    render();
+    updateHUD();
+    overlay.classList.remove("show");
+    setTimeout(showHint, 900);
+  }
+
+  function findHint() {
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var dirs = [[0,1],[1,0]];
+        for (var d = 0; d < dirs.length; d++) {
+          var r2 = r + dirs[d][0], c2 = c + dirs[d][1];
+          if (canSwap(r, c, r2, c2)) return [r, c, r2, c2];
+        }
+      }
+    }
+    return null;
+  }
+
+  function showHint() {
+    if (locked || overlay.classList.contains("show")) return;
+    var h = findHint();
+    if (h) {
+      tiles[h[0]][h[1]].classList.add("hint");
+      tiles[h[2]][h[3]].classList.add("hint");
+      setTimeout(function () {
+        if (!locked && !overlay.classList.contains("show")) {
+          tiles[h[0]][h[1]].classList.remove("hint");
+          tiles[h[2]][h[3]].classList.remove("hint");
+        }
+      }, 1200);
+    }
+  }
+
+  function init() {
+    buildLevelGrid(false);
+    startLevel(Math.min(progress.unlocked - 1, LEVELS.length - 1));
+  }
+
+  init();
+})();
 </script>
 </body>
 </html>
