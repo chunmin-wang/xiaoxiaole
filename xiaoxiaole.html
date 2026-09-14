@@ -780,7 +780,7 @@ function renderLevelList() {
     card.className = "level-card" + (unlocked ? "" : " locked");
     card.innerHTML =
       '<div><div class="lv-name">' + (unlocked ? "第 " + (i+1) + " 关" : "🔒") + " · " + lv.name + '</div>' +
-      '<div class="lv-info">目标 ' + lv.target + " 分 · " + lv.moves + " 步 · " + lv.types + " 种小伙伴</div></div>' +
+      '<div class="lv-info">目标 ' + lv.target + " 分 · " + lv.moves + " 步 · " + lv.types + " 种小伙伴</div></div>" +
       '<div class="lv-stars">' + (unlocked ? "★".repeat(levelStars[i]) + "☆".repeat(3 - levelStars[i]) : "") + "</div>" +
       '<div class="play">' + (unlocked ? "▶" : "") + "</div>";
     card.addEventListener("click", () => { if (unlocked) startLevel(i); });
