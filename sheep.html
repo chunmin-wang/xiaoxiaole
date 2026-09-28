@@ -106,6 +106,12 @@ const slotEl = document.getElementById("slot");
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 function build(){
+  let tries = 0;
+  do { buildBoard(); tries++; } while (!isSolvable() && tries < 60);
+  render();
+}
+
+function buildBoard(){
   tiles = []; slot = []; history = [];
   props = {undo:1, shuffle:1, out:1};
   document.getElementById("lvLabel").textContent = "第 " + (level+1) + " 关";
@@ -126,15 +132,48 @@ function build(){
       const spread = layer===0 ? 200 : layer===1 ? 150 : 100;
       const x = cx + (Math.random()-0.5)*spread*2;
       const y = cy + (Math.random()-0.5)*spread*1.2;
-      tiles.push({
-        id: idx, type: deck[idx], layer,
-        x: x - tileSize/2, y: y - tileSize/2,
-        removed: false,
-      });
+      tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
       idx++;
     }
   }
-  render();
+}
+
+function isSolvable(){
+  const removed = tiles.map(()=>false);
+  let slotArr = [];
+  for (let step=0; step<300; step++){
+    const count = {};
+    slotArr.forEach(t => count[t]=(count[t]||0)+1);
+    const clickable = [];
+    for (let i=0;i<tiles.length;i++){
+      if (removed[i]) continue;
+      const t = tiles[i];
+      let ok = true;
+      for (let j=0;j<tiles.length;j++){
+        if (removed[j] || j===i || tiles[j].layer <= t.layer) continue;
+        if (Math.abs(tiles[j].x-t.x)<40 && Math.abs(tiles[j].y-t.y)<40){ ok=false; break; }
+      }
+      if (ok) clickable.push(i);
+    }
+    if (clickable.length===0) break;
+    let pick = -1;
+    for (const i of clickable){ if (count[tiles[i].type]===2){ pick=i; break; } }
+    if (pick<0) for (const i of clickable){ if (count[tiles[i].type]===1){ pick=i; break; } }
+    if (pick<0) pick = clickable[0];
+    removed[pick] = true;
+    slotArr.push(tiles[pick].type);
+    let changed = true;
+    while (changed){
+      changed = false;
+      for (let i=0; i+2<slotArr.length; i++){
+        if (slotArr[i]===slotArr[i+1] && slotArr[i+1]===slotArr[i+2]){
+          slotArr.splice(i,3); changed = true; break;
+        }
+      }
+    }
+    if (slotArr.length >= 7) return false;
+  }
+  return removed.every(r=>r);
 }
 
 function isUncovered(t){
