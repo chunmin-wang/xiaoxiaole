@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>周周翻翻乐 · Zhou Zhou Memory</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family: "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background: linear-gradient(160deg,#5b2a86 0%,#a2379c 55%,#e2588b 100%);
+  color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:10px; user-select:none; overflow-x:hidden;
+}
+body::before {
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.16) 0, transparent 42px),
+    radial-gradient(circle at 85% 12%, rgba(255,255,255,.12) 0, transparent 60px),
+    radial-gradient(circle at 78% 82%, rgba(255,255,255,.14) 0, transparent 50px),
+    radial-gradient(circle at 22% 78%, rgba(255,255,255,.10) 0, transparent 45px);
+}
+.wrap { position:relative; z-index:1; width:100%; max-width:480px; margin:auto; padding:8px; }
+h1 { text-align:center; font-size:26px; font-weight:900; letter-spacing:3px; text-shadow:0 3px 8px rgba(0,0,0,.35); margin-bottom:4px; }
+.sub { text-align:center; font-size:12px; opacity:.85; margin-bottom:12px; letter-spacing:1px; }
+.hud { display:flex; gap:8px; margin-bottom:12px; }
+.stat { flex:1; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28);
+  border-radius:14px; padding:8px; text-align:center; backdrop-filter:blur(4px); }
+.stat .label { font-size:11px; opacity:.85; }
+.stat .value { font-size:20px; font-weight:800; }
+.board {
+  display:grid; gap:8px; justify-content:center;
+  background:rgba(255,255,255,.13); border:2px solid rgba(255,255,255,.35);
+  border-radius:20px; padding:12px; box-shadow:0 18px 50px rgba(0,0,0,.4);
+}
+.board.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.card {
+  aspect-ratio:1/1; perspective:800px; cursor:pointer; position:relative;
+  transition: transform .15s;
+}
+.card:active { transform: scale(.95); }
+.card .inner {
+  position:relative; width:100%; height:100%; transform-style:preserve-3d;
+  transition: transform .45s cubic-bezier(.4,1.4,.6,1);
+}
+.card.flip .inner { transform: rotateY(180deg); }
+.card.matched .inner { transform: rotateY(180deg); }
+.card.matched { animation: matchPulse .5s ease; }
+@keyframes matchPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 12px #ffd700); }
+  100% { transform: scale(1); opacity:.85; }
+}
+.card .face {
+  position:absolute; inset:0; border-radius:12px; backface-visibility:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.card .back {
+  background: linear-gradient(135deg,#ffd166,#ff9f43);
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.2), 0 4px 10px rgba(0,0,0,.25);
+  font-size:28px; font-weight:900; color:#6b3b00;
+}
+.card .back::after { content:"?"; }
+.card .front {
+  background:#fff; transform:rotateY(180deg);
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.1);
+}
+.card .front img { width:88%; height:88%; object-fit:contain; }
+.controls { display:flex; gap:10px; margin-top:14px; }
+.btn {
+  flex:1; border:none; cursor:pointer; padding:11px 0; border-radius:13px;
+  background:linear-gradient(180deg,#ffd166,#ff9f43); color:#6b3b00;
+  font-weight:800; font-size:15px; letter-spacing:1px;
+  box-shadow:0 5px 0 #d17f2a, 0 8px 18px rgba(0,0,0,.3);
+  transition:transform .08s, box-shadow .08s;
+}
+.btn:active { transform:translateY(4px); box-shadow:0 1px 0 #d17f2a; }
+.btn.secondary { background:linear-gradient(180deg,#8fd3ff,#4aa3ff); color:#073a63; box-shadow:0 5px 0 #2f7dd0; }
+.btn.secondary:active { box-shadow:0 1px 0 #2f7dd0; }
+.overlay {
+  position:fixed; inset:0; z-index:100; background:rgba(30,8,50,.78);
+  backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center;
+  transition:opacity .3s; padding:20px;
+}
+.overlay.hidden { opacity:0; pointer-events:none; }
+.panel {
+  background:linear-gradient(180deg,#7b2f9e,#5b1f7d); border:2px solid rgba(255,255,255,.4);
+  border-radius:24px; padding:26px; text-align:center; max-width:400px; width:100%;
+  box-shadow:0 24px 70px rgba(0,0,0,.55); animation:panelIn .35s ease;
+}
+@keyframes panelIn { 0%{transform:scale(.7);opacity:0;} 100%{transform:scale(1);opacity:1;} }
+.panel h1 { font-size:30px; margin-bottom:8px; }
+.panel .sub { margin-bottom:14px; }
+.panel .rule { background:rgba(255,255,255,.1); border-radius:12px; padding:12px;
+  font-size:13.5px; line-height:1.7; text-align:left; margin:12px 0; }
+.panel .big { font-size:20px; font-weight:800; margin:10px 0; }
+.panel .stars { font-size:38px; letter-spacing:6px; margin:8px 0; }
+.level-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.level-card { background:rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.28);
+  border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between;
+  align-items:center; cursor:pointer; }
+.level-card.locked { opacity:.45; cursor:not-allowed; }
+.level-card .lv-info { font-size:12px; opacity:.85; }
+.confetti { position:fixed; top:-20px; width:10px; height:14px; z-index:90; pointer-events:none; animation:fall linear forwards; }
+@keyframes fall { to { transform:translateY(110vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧠 周周翻翻乐</h1>
+  <div class="sub">记住小伙伴的位置，全部配对即通关！</div>
+  <div class="hud">
+    <div class="stat"><div class="label">步数</div><div class="value" id="moves">0</div></div>
+    <div class="stat"><div class="label">用时</div><div class="value" id="time">0s</div></div>
+    <div class="stat"><div class="label">已配对</div><div class="value" id="pairs">0/4</div></div>
+  </div>
+  <div class="board cols-4" id="board"></div>
+  <div class="controls">
+    <button class="btn secondary" id="restartBtn">🔄 重开</button>
+    <button class="btn secondary" id="levelBtn">🏠 选关</button>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="panel">
+    <h1>🧠 周周翻翻乐</h1>
+    <div class="sub">记忆配对小游戏</div>
+    <div class="rule">
+      <b>玩法：</b>点击卡牌翻开，找到两张相同的小伙伴。<br>
+      全部配对成功即通关！步数越少、时间越短，星越高 ⭐
+    </div>
+    <button class="btn" id="startBtn" style="margin-top:6px;font-size:18px;padding:13px 0;">🎮 开始游戏</button>
+    <div class="level-list" id="levelList"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="resultOverlay">
+  <div class="panel">
+    <div class="stars" id="stars">⭐⭐⭐</div>
+    <h1 id="resultTitle">通关！</h1>
+    <div class="big" id="resultScore"></div>
+    <button class="btn" id="nextBtn">▶ 下一关</button>
+    <button class="btn secondary" id="retryBtn" style="margin-top:8px;">🔁 再玩一次</button>
+  </div>
+</div>
+
+<script>
+const ICONS = [
+  "https://aka.doubaocdn.com/s/bQ1S4uPAlk",
+  "https://aka.doubaocdn.com/s/MSqOe17o2A",
+  "https://aka.doubaocdn.com/s/8yqMUtDke8",
+  "https://aka.doubaocdn.com/s/XHtyruJJxw",
+  "https://aka.doubaocdn.com/s/8k9HFw3HXp",
+  "https://aka.doubaocdn.com/s/YVMTXURs28",
+  "https://aka.doubaocdn.com/s/0mfDIA68IL",
+  "https://aka.doubaocdn.com/s/S1x6EPxSmf",
+];
+const LEVELS = [
+  { pairs:4, cols:4, parMoves:8 },
+  { pairs:6, cols:4, parMoves:12 },
+  { pairs:8, cols:4, parMoves:16 },
+];
+let currentLevel = 0, unlocked = 1, stars = [0,0,0];
+let cards = [], first = null, lock = false, moves = 0, matched = 0, timer = 0, timerId = null;
+
+const boardEl = document.getElementById("board");
+const movesEl = document.getElementById("moves");
+const timeEl = document.getElementById("time");
+const pairsEl = document.getElementById("pairs");
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function startLevel(idx){
+  currentLevel = idx;
+  const lv = LEVELS[idx];
+  first = null; lock = false; moves = 0; matched = 0;
+  clearInterval(timerId); timer = 0;
+  timeEl.textContent = "0s";
+  movesEl.textContent = "0";
+  pairsEl.textContent = "0/" + lv.pairs;
+  boardEl.className = "board cols-" + lv.cols;
+  boardEl.innerHTML = "";
+  const chosen = shuffle(ICONS.slice(0, lv.pairs));
+  const deck = shuffle([...chosen, ...chosen]);
+  cards = deck.map((icon, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.icon = icon;
+    card.innerHTML = `<div class="inner"><div class="face back"></div><div class="face front"><img src="${icon}" alt=""></div></div>`;
+    card.addEventListener("click", () => flip(card));
+    boardEl.appendChild(card);
+    return card;
+  });
+  timerId = setInterval(() => { timer++; timeEl.textContent = timer + "s"; }, 1000);
+  document.getElementById("startOverlay").classList.add("hidden");
+  document.getElementById("resultOverlay").classList.add("hidden");
+}
+
+function flip(card){
+  if (lock) return;
+  if (card.classList.contains("flip") || card.classList.contains("matched")) return;
+  card.classList.add("flip");
+  if (!first) { first = card; return; }
+  moves++; movesEl.textContent = moves;
+  if (first.dataset.icon === card.dataset.icon) {
+    first.classList.add("matched"); card.classList.add("matched");
+    matched++;
+    pairsEl.textContent = matched + "/" + LEVELS[currentLevel].pairs;
+    first = null;
+    if (matched === LEVELS[currentLevel].pairs) win();
+  } else {
+    lock = true;
+    setTimeout(() => {
+      first.classList.remove("flip"); card.classList.remove("flip");
+      first = null; lock = false;
+    }, 700);
+  }
+}
+
+function win(){
+  clearInterval(timerId);
+  const lv = LEVELS[currentLevel];
+  let s = 3;
+  if (moves > lv.parMoves * 1.3) s = 2;
+  if (moves > lv.parMoves * 1.6) s = 1;
+  stars[currentLevel] = Math.max(stars[currentLevel], s);
+  if (currentLevel + 1 < LEVELS.length) unlocked = Math.max(unlocked, currentLevel + 2);
+  save();
+  document.getElementById("stars").textContent = "★".repeat(s) + "☆".repeat(3 - s);
+  document.getElementById("resultScore").textContent = `用 ${moves} 步 · ${timer} 秒`;
+  if (currentLevel + 1 < LEVELS.length) {
+    document.getElementById("nextBtn").textContent = "▶ 下一关";
+    document.getElementById("nextBtn").onclick = () => startLevel(currentLevel + 1);
+  } else {
+    document.getElementById("nextBtn").textContent = "🎊 全部通关";
+    document.getElementById("nextBtn").onclick = showLevelList;
+  }
+  document.getElementById("retryBtn").onclick = () => startLevel(currentLevel);
+  setTimeout(() => document.getElementById("resultOverlay").classList.remove("hidden"), 500);
+  confetti();
+}
+
+function confetti(){
+  const colors = ["#ff5d7e","#ffd34d","#7ed957","#5fb8ff","#b26bff","#ff9a3d"];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement("div"); c.className = "confetti";
+    c.style.left = Math.random()*100 + "vw";
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (2 + Math.random()*2) + "s";
+    c.style.animationDelay = (Math.random()*.6) + "s";
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4500);
+  }
+}
+
+function renderLevels(){
+  const list = document.getElementById("levelList");
+  list.innerHTML = "";
+  LEVELS.forEach((lv, i) => {
+    const ok = i < unlocked;
+    const card = document.createElement("div");
+    card.className = "level-card" + (ok ? "" : " locked");
+    card.innerHTML = `<div><b>第 ${i+1} 关</b><div class="lv-info">${lv.pairs} 对卡牌 · ${lv.cols} 列</div></div>
+      <div>${ok ? "★".repeat(stars[i]) + "☆".repeat(3-stars[i]) : "🔒"}</div>`;
+    if (ok) card.onclick = () => startLevel(i);
+    list.appendChild(card);
+  });
+}
+
+function showLevelList(){
+  renderLevels();
+  document.getElementById("startOverlay").classList.remove("hidden");
+  document.getElementById("resultOverlay").classList.add("hidden");
+}
+
+function save(){ try { localStorage.setItem("zhouzhou_memory", JSON.stringify({unlocked, stars})); } catch(e){} }
+function load(){ try { const d = JSON.parse(localStorage.getItem("zhouzhou_memory")); if (d) { unlocked = d.unlocked||1; stars = d.stars||[0,0,0]; } } catch(e){} }
+
+document.getElementById("startBtn").onclick = () => startLevel(0);
+document.getElementById("restartBtn").onclick = () => startLevel(currentLevel);
+document.getElementById("levelBtn").onclick = showLevelList;
+
+load();
+renderLevels();
+</script>
+</body>
+</html>
