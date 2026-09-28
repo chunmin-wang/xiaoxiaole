@@ -36,8 +36,12 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .tile:not(.locked):active{transform:scale(.92);}
 #slot{display:flex;justify-content:center;gap:4px;margin:10px auto;max-width:440px;
   background:rgba(0,0,0,.2);padding:8px;border-radius:12px;min-height:60px;}
-.slot-cell{width:52px;height:52px;border-radius:10px;}
+.slot-cell{width:52px;height:52px;border-radius:10px;position:relative;}
 .slot-cell img{width:100%;height:100%;object-fit:contain;}
+.slot-cell.enter{animation:enterPop .25s ease;}
+@keyframes enterPop{0%{transform:scale(.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.slot-cell.matched img{animation:popOut .35s ease forwards;}
+@keyframes popOut{0%{transform:scale(1);opacity:1;}50%{transform:scale(1.2);opacity:1;}100%{transform:scale(0);opacity:0;}}
 .btn{background:linear-gradient(180deg,#ffd166,#ff9f43);border:none;color:#6b3b00;
   font-weight:800;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:15px;
   box-shadow:0 4px 0 #d17f2a;}
@@ -55,7 +59,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 <body>
 <div class="wrap">
   <h1>🐑 咩了个咩</h1>
-  <div class="sub">三层叠牌，槽位三消，7格装满即败！</div>
+  <div class="sub">将三个一样的小伙伴连续放进下方卡槽即可消除，7 格满即败</div>
   <div class="top">
     <div class="lv" id="lvLabel">第 1 关</div>
     <div class="props">
@@ -157,11 +161,11 @@ function render(){
   renderSlot();
 }
 
-function renderSlot(){
+function renderSlot(enterIdx=-1){
   slotEl.innerHTML = "";
   for (let i=0;i<7;i++){
     const c = document.createElement("div");
-    c.className = "slot-cell";
+    c.className = "slot-cell" + (i===enterIdx ? " enter" : "");
     if (slot[i] !== undefined){
       const img = document.createElement("img");
       img.src = IMG[slot[i]];
@@ -176,19 +180,28 @@ function onTile(t){
   t.removed = true;
   history.push({type:t.type, id:t.id});
   slot.push(t.type);
-  checkMatch();
   render();
-  checkEnd();
+  renderSlot(slot.length-1);
+  const matchIdx = findMatchIndex();
+  if (matchIdx >= 0){
+    const cells = slotEl.querySelectorAll(".slot-cell");
+    for (let i=matchIdx; i<matchIdx+3; i++) cells[i] && cells[i].classList.add("matched");
+    setTimeout(()=>{
+      slot.splice(matchIdx, 3);
+      render();
+      renderSlot();
+      checkEnd();
+    }, 380);
+  } else {
+    checkEnd();
+  }
 }
 
-function checkMatch(){
-  let i = slot.length - 3;
-  while (i >= 0){
-    if (slot[i]===slot[i+1] && slot[i+1]===slot[i+2]){
-      slot.splice(i,3);
-      i = slot.length - 3;
-    } else i--;
+function findMatchIndex(){
+  for (let i=0; i+2<slot.length; i++){
+    if (slot[i]===slot[i+1] && slot[i+1]===slot[i+2]) return i;
   }
+  return -1;
 }
 
 function checkEnd(){
