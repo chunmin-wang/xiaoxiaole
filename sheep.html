@@ -40,7 +40,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .slot-cell img{width:100%;height:100%;object-fit:contain;}
 .slot-cell.enter{animation:enterPop .25s ease;}
 @keyframes enterPop{0%{transform:scale(.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
-.slot-cell.matched{animation:popOut .4s ease forwards;}
+.slot-cell.matched img{animation:popOut .35s ease forwards;}
 @keyframes popOut{0%{transform:scale(1);opacity:1;}50%{transform:scale(1.2);opacity:1;}100%{transform:scale(0);opacity:0;}}
 .btn{background:linear-gradient(180deg,#ffd166,#ff9f43);border:none;color:#6b3b00;
   font-weight:800;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:15px;
@@ -96,7 +96,7 @@ const IMG = [
   "https://aka.doubaocdn.com/s/vhzqzFac7u",
 ];
 const LEVELS = [
-  { types: 4, groups: 6 },
+  { types: 3, groups: 3 },
   { types: 8, groups: 9 },
 ];
 let level = 0, tiles = [], slot = [], history = [], props = {undo:1, shuffle:1, out:1};
@@ -126,21 +126,17 @@ function buildBoard(){
   const total = deck.length;
 
   if (level === 0){
-    const rows = [5, 3, 1];
-    const cy = 170;
-    for (let layer=0; layer<3; layer++){
-      const n = rows[layer];
-      for (let k=0; k<n; k++){
-        const x = stackW/2 + (k - (n-1)/2) * 52 - tileSize/2;
-        const y = cy + layer*15;
-        tiles.push({ id: idx, type: deck[idx], layer, x, y, removed: false });
+    const cols = 3, rows = 3;
+    const gap = 70;
+    const startX = stackW/2 - gap;
+    const startY = 130;
+    for (let r=0; r<rows; r++){
+      for (let c=0; c<cols; c++){
+        const x = startX + c*gap - tileSize/2;
+        const y = startY + r*gap;
+        tiles.push({ id: idx, type: deck[idx], layer: 0, x, y, removed: false });
         idx++;
       }
-    }
-    while (idx < total){
-      const side = idx % 2 === 0 ? 30 : stackW - 30 - tileSize;
-      tiles.push({ id: idx, type: deck[idx], layer: 0, x: side, y: 260 + (Math.random()-0.5)*40, removed: false });
-      idx++;
     }
   } else {
     const pileCount = 15;
@@ -181,7 +177,7 @@ function buildBoard(){
 function isSolvable(){
   const removed = tiles.map(()=>false);
   let slotArr = [];
-  for (let step=0; step<600; step++){
+  for (let step=0; step<300; step++){
     const count = {};
     slotArr.forEach(t => count[t]=(count[t]||0)+1);
     const clickable = [];
@@ -281,7 +277,7 @@ function onTile(t){
           n++;
         }
       }
-    }, 60);
+    }, 50);
     setTimeout(()=>{
       let removedCount = 0;
       for (let i=slot.length-1; i>=0 && removedCount<3; i--){
@@ -290,7 +286,7 @@ function onTile(t){
       render();
       renderSlot();
       checkEnd();
-    }, 500);
+    }, 450);
   } else {
     checkEnd();
   }
