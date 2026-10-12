@@ -143,39 +143,37 @@ function buildBoard(){
       idx++;
     }
   } else {
-    const stackCount = 10;
-    const layerRows = [
-      {cols: 6, y: 190},
-      {cols: 5, y: 172},
-      {cols: 4, y: 154},
-      {cols: 3, y: 136},
-    ];
-    for (let layer=0; layer<4; layer++){
-      const {cols, y} = layerRows[layer];
-      for (let k=0; k<cols; k++){
-        const x = stackW/2 + (k - (cols-1)/2) * 46 - tileSize/2;
-        tiles.push({ id: idx, type: deck[idx], layer, x, y, removed: false });
-        idx++;
-      }
-    }
-    while (idx < total - stackCount*2){
-      const x = stackW/2 + (Math.random()-0.5)*180;
-      const y = 210 + (Math.random()-0.5)*25;
-      tiles.push({ id: idx, type: deck[idx], layer: 0, x, y, removed: false });
-      idx++;
-    }
-    const leftX = 5, rightX = stackW - 5 - tileSize, pileY = 100;
+    const pileCount = 15;
+    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 80;
     for (let s=0; s<2; s++){
-      const pileX = s===0 ? leftX : rightX;
-      for (let n=0; n<stackCount; n++){
+      const px = s===0 ? pileLeftX : pileRightX;
+      for (let n=0; n<pileCount; n++){
         tiles.push({
           id: idx, type: deck[idx],
-          layer: 10 + n,
-          x: pileX, y: pileY + n*3,
+          layer: 20 + n,
+          x: px, y: pileY + n*2,
           removed: false
         });
         idx++;
       }
+    }
+    const layerCols = [7, 5, 3, 1];
+    const startY = 200;
+    const rowH = 18;
+    const colW = 44;
+    const cx0 = stackW / 2;
+    for (let layer=0; layer<layerCols.length; layer++){
+      const cols = layerCols[layer];
+      const y = startY - layer * rowH;
+      for (let k=0; k<cols; k++){
+        const x = cx0 + (k - (cols-1)/2) * colW - tileSize/2;
+        tiles.push({id: idx, type: deck[idx], layer, x, y, removed: false});
+        idx++;
+      }
+    }
+    while (idx < total){
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*150, y: startY + 20, removed: false});
+      idx++;
     }
   }
 }
@@ -339,7 +337,7 @@ document.getElementById("pOut").onclick = ()=>{
   if (props.out<=0) return;
   const out = slot.splice(-3,3);
   out.forEach((type,i)=>{
-    tiles.push({id: Date.now()+i, type, layer:13, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
+    tiles.push({id: Date.now()+i, type, layer:2, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
   });
   props.out--;
   document.getElementById("pOut").classList.add("used");
