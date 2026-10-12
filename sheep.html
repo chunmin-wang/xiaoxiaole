@@ -148,15 +148,15 @@ function buildBoard(){
     ];
     for (let layer=0; layer<4; layer++){
       for (let k=0; k<perLayer[layer]; k++){
-        const cx = stackW/2, cy = 170;
-        const spread = [170, 120, 75, 45][layer];
+        const cx = stackW/2, cy = 140;
+        const spread = [140, 100, 60, 35][layer];
         const x = cx + (Math.random()-0.5)*spread*2;
         const y = cy + (Math.random()-0.5)*spread*1.2;
         tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
         idx++;
       }
     }
-    const leftX = 80, rightX = stackW - 80 - tileSize, pileY = 290;
+    const leftX = 10, rightX = stackW - 10 - tileSize, pileY = 180;
     for (let s=0; s<2; s++){
       const pileX = s===0 ? leftX : rightX;
       for (let n=0; n<stackCount; n++){
