@@ -155,13 +155,14 @@ function buildBoard(){
       }
     }
     const cx0 = stackW / 2;
-    const gap = 30;
+    const gap = 26;
     const layout = [
-      {n:7, y:290, layer:0},
-      {n:6, y:260, layer:1},
-      {n:5, y:230, layer:2},
-      {n:4, y:200, layer:3},
-      {n:3, y:170, layer:4},
+      {n:3,  y:170, layer:3},
+      {n:5,  y:195, layer:2},
+      {n:8,  y:220, layer:1},
+      {n:8,  y:245, layer:1},
+      {n:11, y:270, layer:0},
+      {n:11, y:295, layer:0},
     ];
     for (const row of layout){
       for (let k=0; k<row.n; k++){
@@ -170,7 +171,7 @@ function buildBoard(){
       }
     }
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 300, removed: false});
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.floor(Math.random()*11)-5)*gap - tileSize/2, y: 295, removed: false});
       idx++;
     }
   }
