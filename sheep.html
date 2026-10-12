@@ -165,9 +165,15 @@ function isSolvable(){
     let changed = true;
     while (changed){
       changed = false;
-      for (let i=0; i+2<slotArr.length; i++){
-        if (slotArr[i]===slotArr[i+1] && slotArr[i+1]===slotArr[i+2]){
-          slotArr.splice(i,3); changed = true; break;
+      const cnt = {};
+      slotArr.forEach(x => cnt[x]=(cnt[x]||0)+1);
+      for (const k of Object.keys(cnt)){
+        if (cnt[k] >= 3){
+          let rem = 0;
+          for (let i=slotArr.length-1; i>=0 && rem<3; i--){
+            if (slotArr[i]==k){ slotArr.splice(i,1); rem++; }
+          }
+          changed = true; break;
         }
       }
     }
@@ -221,12 +227,20 @@ function onTile(t){
   slot.push(t.type);
   render();
   renderSlot(slot.length-1);
-  const matchIdx = findMatchIndex();
-  if (matchIdx >= 0){
+  const count = {};
+  slot.forEach(x => count[x]=(count[x]||0)+1);
+  const matchedType = Object.keys(count).find(k => count[k]>=3);
+  if (matchedType !== undefined){
+    let removed = 0;
     const cells = slotEl.querySelectorAll(".slot-cell");
-    for (let i=matchIdx; i<matchIdx+3; i++) cells[i] && cells[i].classList.add("matched");
+    for (let i=0; i<slot.length && removed<3; i++){
+      if (slot[i] == matchedType){ cells[i] && cells[i].classList.add("matched"); removed++; }
+    }
     setTimeout(()=>{
-      slot.splice(matchIdx, 3);
+      let removedCount = 0;
+      for (let i=slot.length-1; i>=0 && removedCount<3; i--){
+        if (slot[i] == matchedType){ slot.splice(i,1); removedCount++; }
+      }
       render();
       renderSlot();
       checkEnd();
@@ -234,13 +248,6 @@ function onTile(t){
   } else {
     checkEnd();
   }
-}
-
-function findMatchIndex(){
-  for (let i=0; i+2<slot.length; i++){
-    if (slot[i]===slot[i+1] && slot[i+1]===slot[i+2]) return i;
-  }
-  return -1;
 }
 
 function checkEnd(){
