@@ -126,21 +126,22 @@ function buildBoard(){
   const total = deck.length;
 
   if (level === 0){
-    const cols = 3, rows = 3;
-    const gap = 70;
-    const startX = stackW/2 - gap;
-    const startY = 130;
-    for (let r=0; r<rows; r++){
-      for (let c=0; c<cols; c++){
-        const x = startX + c*gap - tileSize/2;
-        const y = startY + r*gap;
-        tiles.push({ id: idx, type: deck[idx], layer: 0, x, y, removed: false });
-        idx++;
-      }
+    const bottomY = 200;
+    const gap = 58;
+    const cx0 = stackW/2;
+    for (let k=0; k<6; k++){
+      const x = cx0 + (k - 2.5) * gap - tileSize/2;
+      tiles.push({ id: idx, type: deck[idx], layer: 0, x, y: bottomY, removed: false });
+      idx++;
+    }
+    for (let k=0; k<3; k++){
+      const x = cx0 + (k - 1) * gap - tileSize/2;
+      tiles.push({ id: idx, type: deck[idx], layer: 1, x, y: bottomY - 20, removed: false });
+      idx++;
     }
   } else {
-    const pileCount = 15;
-    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 80;
+    const pileCount = 8;
+    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 120;
     for (let s=0; s<2; s++){
       const px = s===0 ? pileLeftX : pileRightX;
       for (let n=0; n<pileCount; n++){
@@ -153,10 +154,10 @@ function buildBoard(){
         idx++;
       }
     }
-    const layerCols = [7, 5, 3, 1];
-    const startY = 200;
+    const layerCols = [9, 7, 5, 3];
+    const startY = 220;
     const rowH = 18;
-    const colW = 44;
+    const colW = 40;
     const cx0 = stackW / 2;
     for (let layer=0; layer<layerCols.length; layer++){
       const cols = layerCols[layer];
@@ -168,7 +169,7 @@ function buildBoard(){
       }
     }
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*150, y: startY + 20, removed: false});
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*180, y: startY + 20, removed: false});
       idx++;
     }
   }
@@ -177,7 +178,7 @@ function buildBoard(){
 function isSolvable(){
   const removed = tiles.map(()=>false);
   let slotArr = [];
-  for (let step=0; step<300; step++){
+  for (let step=0; step<600; step++){
     const count = {};
     slotArr.forEach(t => count[t]=(count[t]||0)+1);
     const clickable = [];
