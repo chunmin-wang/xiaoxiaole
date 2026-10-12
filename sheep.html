@@ -124,14 +124,18 @@ function buildBoard(){
   const tileSize = 52;
   let idx = 0;
   const total = deck.length;
-  const perLayer = [Math.ceil(total*0.25), Math.ceil(total*0.35), Math.floor(total*0.4)];
-  perLayer[2] = total - perLayer[0] - perLayer[1];
-  for (let layer=0; layer<3; layer++){
+  const perLayer = [
+    Math.ceil(total*0.2),
+    Math.ceil(total*0.25),
+    Math.ceil(total*0.3),
+    total - Math.ceil(total*0.2) - Math.ceil(total*0.25) - Math.ceil(total*0.3)
+  ];
+  for (let layer=0; layer<4; layer++){
     for (let k=0; k<perLayer[layer]; k++){
       const cx = stackW/2, cy = 190;
       const spread = level===0
-        ? (layer===0 ? 200 : layer===1 ? 150 : 100)
-        : (layer===0 ? 180 : layer===1 ? 120 : 70);
+        ? [200, 150, 100, 60][layer]
+        : [170, 120, 75, 45][layer];
       const x = cx + (Math.random()-0.5)*spread*2;
       const y = cy + (Math.random()-0.5)*spread*1.2;
       tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
@@ -143,7 +147,7 @@ function buildBoard(){
 function isSolvable(){
   const removed = tiles.map(()=>false);
   let slotArr = [];
-  for (let step=0; step<400; step++){
+  for (let step=0; step<500; step++){
     const count = {};
     slotArr.forEach(t => count[t]=(count[t]||0)+1);
     const clickable = [];
@@ -153,7 +157,7 @@ function isSolvable(){
       let ok = true;
       for (let j=0;j<tiles.length;j++){
         if (removed[j] || j===i || tiles[j].layer <= t.layer) continue;
-        if (Math.abs(tiles[j].x-t.x)<40 && Math.abs(tiles[j].y-t.y)<40){ ok=false; break; }
+        if (Math.abs(tiles[j].x-t.x)<44 && Math.abs(tiles[j].y-t.y)<44){ ok=false; break; }
       }
       if (ok) clickable.push(i);
     }
@@ -187,7 +191,7 @@ function isSolvable(){
 function isUncovered(t){
   for (const o of tiles){
     if (o.removed || o.layer <= t.layer) continue;
-    if (Math.abs(o.x - t.x) < 40 && Math.abs(o.y - t.y) < 40) return false;
+    if (Math.abs(o.x - t.x) < 44 && Math.abs(o.y - t.y) < 44) return false;
   }
   return true;
 }
@@ -200,7 +204,7 @@ function render(){
     el.className = "tile" + (isUncovered(t) ? "" : " locked");
     el.style.left = t.x + "px";
     el.style.top = t.y + "px";
-    el.style.zIndex = t.layer*100 + Math.round(t.y);
+    el.style.zIndex = t.layer*250 + Math.round(t.y);
     el.innerHTML = `<img src="${IMG[t.type]}" alt="">`;
     el.onclick = ()=>onTile(t);
     stackEl.appendChild(el);
@@ -298,7 +302,7 @@ document.getElementById("pOut").onclick = ()=>{
   if (props.out<=0) return;
   const out = slot.splice(-3,3);
   out.forEach((type,i)=>{
-    tiles.push({id: Date.now()+i, type, layer:2, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
+    tiles.push({id: Date.now()+i, type, layer:3, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
   });
   props.out--;
   document.getElementById("pOut").classList.add("used");
