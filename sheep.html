@@ -97,7 +97,7 @@ const IMG = [
 ];
 const LEVELS = [
   { types: 4, groups: 6 },
-  { types: 6, groups: 8 },
+  { types: 6, groups: 9 },
 ];
 let level = 0, tiles = [], slot = [], history = [], props = {undo:1, shuffle:1, out:1};
 const stackEl = document.getElementById("stack");
@@ -107,7 +107,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 function build(){
   let tries = 0;
-  do { buildBoard(); tries++; } while (!isSolvable() && tries < 60);
+  do { buildBoard(); tries++; } while (!isSolvable() && tries < 80);
   render();
 }
 
