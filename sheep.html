@@ -107,7 +107,7 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 
 function build(){
   let tries = 0;
-  do { buildBoard(); tries++; } while (!isSolvable() && tries < 80);
+  do { buildBoard(); tries++; } while (!isSolvable() && tries < 100);
   render();
 }
 
@@ -155,30 +155,22 @@ function buildBoard(){
       }
     }
     const cx0 = stackW / 2;
-    const baseGap = 42;
-    const baseY1 = 240, baseY2 = 275;
-    for (let k=0; k<6; k++){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (k-2.5)*baseGap - tileSize/2, y: baseY1, removed: false}); idx++;
-    }
-    for (let k=0; k<6; k++){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (k-2.5)*baseGap - tileSize/2 + 20, y: baseY2, removed: false}); idx++;
-    }
-    const upperPos = [
-      [-80, 200], [-30, 195], [30, 195], [80, 200],
-      [-55, 225], [0, 220], [55, 225],
+    const gap = 30;
+    const layout = [
+      {n:7, y:290, layer:0},
+      {n:6, y:260, layer:1},
+      {n:5, y:230, layer:2},
+      {n:4, y:200, layer:3},
+      {n:3, y:170, layer:4},
     ];
-    for (const [dx, y] of upperPos){
-      tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0 + dx - tileSize/2, y, removed: false}); idx++;
-    }
-    const topPos = [
-      [-110,185],[-60,170],[-10,175],[40,170],[90,185],
-      [-85,140],[-35,135],[15,140],[65,135],
-    ];
-    for (const [dx,y] of topPos){
-      tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 + dx - tileSize/2, y, removed: false}); idx++;
+    for (const row of layout){
+      for (let k=0; k<row.n; k++){
+        const x = cx0 + (k - (row.n-1)/2)*gap - tileSize/2;
+        tiles.push({id: idx, type: deck[idx], layer: row.layer, x, y: row.y, removed: false}); idx++;
+      }
     }
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 290 + Math.random()*15, removed: false});
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 300, removed: false});
       idx++;
     }
   }
