@@ -166,16 +166,16 @@ function buildBoard(){
       tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
     }
     const midPos = [
-      [-124,280],[-72,280],[-20,280],[32,280],[84,280],[136,280],
-      [-98,240],[-46,240],[6,240],[58,240],[110,240],
-      [-72,200],[-20,200],[32,200],[84,200],
+      [-124,274],[-72,274],[-20,274],[32,274],[84,274],[136,274],
+      [-98,234],[-46,234],[6,234],[58,234],[110,234],
+      [-72,194],[-20,194],[32,194],[84,194],
     ];
     for (const [dx,y] of midPos){
       tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
     }
     const topPos = [
-      [-98,260],[-46,260],[6,260],[58,260],
-      [-72,220],[-20,220],[32,220],
+      [-98,248],[-46,248],[6,248],[58,248],
+      [-72,208],[-20,208],[32,208],
     ];
     for (const [dx,y] of topPos){
       tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
