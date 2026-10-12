@@ -154,22 +154,26 @@ function buildBoard(){
         idx++;
       }
     }
-    const layerCols = [7, 5, 3];
-    const startY = 220;
-    const rowH = 18;
-    const colW = 48;
     const cx0 = stackW / 2;
-    for (let layer=0; layer<layerCols.length; layer++){
-      const cols = layerCols[layer];
-      const y = startY - layer * rowH;
-      for (let k=0; k<cols; k++){
-        const x = cx0 + (k - (cols-1)/2) * colW - tileSize/2;
-        tiles.push({id: idx, type: deck[idx], layer, x, y, removed: false});
-        idx++;
-      }
+    const baseGap = 42;
+    const baseY1 = 240, baseY2 = 275;
+    for (let k=0; k<6; k++){
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (k-2.5)*baseGap - tileSize/2, y: baseY1, removed: false}); idx++;
     }
+    for (let k=0; k<6; k++){
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (k-2.5)*baseGap - tileSize/2 + 20, y: baseY2, removed: false}); idx++;
+    }
+    const upperPos = [
+      [-80, 200], [-30, 195], [30, 195], [80, 200],
+      [-55, 225], [0, 220], [55, 225],
+    ];
+    for (const [dx, y] of upperPos){
+      tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0 + dx - tileSize/2, y, removed: false}); idx++;
+    }
+    tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 - 30 - tileSize/2, y: 175, removed: false}); idx++;
+    tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 + 20 - tileSize/2, y: 175, removed: false}); idx++;
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*180, y: startY + 20, removed: false});
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 290 + Math.random()*15, removed: false});
       idx++;
     }
   }
