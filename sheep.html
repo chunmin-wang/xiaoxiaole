@@ -40,7 +40,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .slot-cell img{width:100%;height:100%;object-fit:contain;}
 .slot-cell.enter{animation:enterPop .25s ease;}
 @keyframes enterPop{0%{transform:scale(.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
-.slot-cell.matched img{animation:popOut .35s ease forwards;}
+.slot-cell.matched{animation:popOut .4s ease forwards;}
 @keyframes popOut{0%{transform:scale(1);opacity:1;}50%{transform:scale(1.2);opacity:1;}100%{transform:scale(0);opacity:0;}}
 .btn{background:linear-gradient(180deg,#ffd166,#ff9f43);border:none;color:#6b3b00;
   font-weight:800;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:15px;
@@ -59,7 +59,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 <body>
 <div class="wrap">
   <h1>🐑 咩了个咩</h1>
-  <div class="sub">将三个一样的小伙伴连续放进下方卡槽即可消除，7 格满即败</div>
+  <div class="sub">将三个一样的小伙伴放进下方卡槽即可消除，7 格满即败</div>
   <div class="top">
     <div class="lv" id="lvLabel">第 1 关</div>
     <div class="props">
@@ -97,7 +97,7 @@ const IMG = [
 ];
 const LEVELS = [
   { types: 4, groups: 6 },
-  { types: 6, groups: 9 },
+  { types: 8, groups: 9 },
 ];
 let level = 0, tiles = [], slot = [], history = [], props = {undo:1, shuffle:1, out:1};
 const stackEl = document.getElementById("stack");
@@ -129,7 +129,9 @@ function buildBoard(){
   for (let layer=0; layer<3; layer++){
     for (let k=0; k<perLayer[layer]; k++){
       const cx = stackW/2, cy = 190;
-      const spread = layer===0 ? 200 : layer===1 ? 150 : 100;
+      const spread = level===0
+        ? (layer===0 ? 200 : layer===1 ? 150 : 100)
+        : (layer===0 ? 180 : layer===1 ? 120 : 70);
       const x = cx + (Math.random()-0.5)*spread*2;
       const y = cy + (Math.random()-0.5)*spread*1.2;
       tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
@@ -141,7 +143,7 @@ function buildBoard(){
 function isSolvable(){
   const removed = tiles.map(()=>false);
   let slotArr = [];
-  for (let step=0; step<300; step++){
+  for (let step=0; step<400; step++){
     const count = {};
     slotArr.forEach(t => count[t]=(count[t]||0)+1);
     const clickable = [];
@@ -225,26 +227,31 @@ function onTile(t){
   t.removed = true;
   history.push({type:t.type, id:t.id});
   slot.push(t.type);
-  render();
-  renderSlot(slot.length-1);
   const count = {};
   slot.forEach(x => count[x]=(count[x]||0)+1);
   const matchedType = Object.keys(count).find(k => count[k]>=3);
+  render();
+  renderSlot(slot.length-1);
   if (matchedType !== undefined){
-    let removed = 0;
-    const cells = slotEl.querySelectorAll(".slot-cell");
-    for (let i=0; i<slot.length && removed<3; i++){
-      if (slot[i] == matchedType){ cells[i] && cells[i].classList.add("matched"); removed++; }
-    }
+    setTimeout(()=>{
+      const cells = slotEl.querySelectorAll(".slot-cell");
+      let n = 0;
+      for (let i=0; i<slot.length && n<3; i++){
+        if (String(slot[i]) === matchedType && cells[i]){
+          cells[i].classList.add("matched");
+          n++;
+        }
+      }
+    }, 60);
     setTimeout(()=>{
       let removedCount = 0;
       for (let i=slot.length-1; i>=0 && removedCount<3; i--){
-        if (slot[i] == matchedType){ slot.splice(i,1); removedCount++; }
+        if (String(slot[i]) === matchedType){ slot.splice(i,1); removedCount++; }
       }
       render();
       renderSlot();
       checkEnd();
-    }, 380);
+    }, 500);
   } else {
     checkEnd();
   }
