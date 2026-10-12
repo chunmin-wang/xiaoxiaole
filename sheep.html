@@ -86,14 +86,14 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 
 <script>
 const IMG = [
-  "https://aka.doubaocdn.com/s/hgCdJkLlqb",
-  "https://aka.doubaocdn.com/s/DeBpZZyK0c",
-  "https://aka.doubaocdn.com/s/v1RN7XYMUM",
-  "https://aka.doubaocdn.com/s/Qbo1NJlXvY",
-  "https://aka.doubaocdn.com/s/VVCs2X28lY",
-  "https://aka.doubaocdn.com/s/8n72uDHroi",
-  "https://aka.doubaocdn.com/s/ioHpPPVUPD",
-  "https://aka.doubaocdn.com/s/89x3GALcVU",
+  "https://aka.doubaocdn.com/s/v1XpUUugZK",
+  "https://aka.doubaocdn.com/s/KwbvvpQmGW",
+  "https://aka.doubaocdn.com/s/OqR4V311Wi",
+  "https://aka.doubaocdn.com/s/t40NxaK9I6",
+  "https://aka.doubaocdn.com/s/rX4TV9MTZ1",
+  "https://aka.doubaocdn.com/s/Cs2pLw6AK2",
+  "https://aka.doubaocdn.com/s/jYQKpgr6Qr",
+  "https://aka.doubaocdn.com/s/vhzqzFac7u",
 ];
 const LEVELS = [
   { types: 4, groups: 6 },
@@ -124,22 +124,50 @@ function buildBoard(){
   const tileSize = 52;
   let idx = 0;
   const total = deck.length;
-  const perLayer = [
-    Math.ceil(total*0.2),
-    Math.ceil(total*0.25),
-    Math.ceil(total*0.3),
-    total - Math.ceil(total*0.2) - Math.ceil(total*0.25) - Math.ceil(total*0.3)
-  ];
-  for (let layer=0; layer<4; layer++){
-    for (let k=0; k<perLayer[layer]; k++){
-      const cx = stackW/2, cy = 190;
-      const spread = level===0
-        ? [200, 150, 100, 60][layer]
-        : [170, 120, 75, 45][layer];
-      const x = cx + (Math.random()-0.5)*spread*2;
-      const y = cy + (Math.random()-0.5)*spread*1.2;
-      tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
-      idx++;
+
+  if (level === 0){
+    const perLayer = [Math.ceil(total*0.3), Math.ceil(total*0.35), total - Math.ceil(total*0.3) - Math.ceil(total*0.35)];
+    for (let layer=0; layer<3; layer++){
+      for (let k=0; k<perLayer[layer]; k++){
+        const cx = stackW/2, cy = 190;
+        const spread = [200, 150, 100][layer];
+        const x = cx + (Math.random()-0.5)*spread*2;
+        const y = cy + (Math.random()-0.5)*spread*1.2;
+        tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
+        idx++;
+      }
+    }
+  } else {
+    const stackCount = 10;
+    const outerTotal = total - stackCount*2;
+    const perLayer = [
+      Math.ceil(outerTotal*0.2),
+      Math.ceil(outerTotal*0.25),
+      Math.ceil(outerTotal*0.3),
+      outerTotal - Math.ceil(outerTotal*0.2) - Math.ceil(outerTotal*0.25) - Math.ceil(outerTotal*0.3)
+    ];
+    for (let layer=0; layer<4; layer++){
+      for (let k=0; k<perLayer[layer]; k++){
+        const cx = stackW/2, cy = 170;
+        const spread = [170, 120, 75, 45][layer];
+        const x = cx + (Math.random()-0.5)*spread*2;
+        const y = cy + (Math.random()-0.5)*spread*1.2;
+        tiles.push({ id: idx, type: deck[idx], layer, x: x - tileSize/2, y: y - tileSize/2, removed: false });
+        idx++;
+      }
+    }
+    const leftX = 80, rightX = stackW - 80 - tileSize, pileY = 290;
+    for (let s=0; s<2; s++){
+      const pileX = s===0 ? leftX : rightX;
+      for (let n=0; n<stackCount; n++){
+        tiles.push({
+          id: idx, type: deck[idx],
+          layer: 10 + n,
+          x: pileX, y: pileY,
+          removed: false
+        });
+        idx++;
+      }
     }
   }
 }
@@ -147,7 +175,7 @@ function buildBoard(){
 function isSolvable(){
   const removed = tiles.map(()=>false);
   let slotArr = [];
-  for (let step=0; step<500; step++){
+  for (let step=0; step<600; step++){
     const count = {};
     slotArr.forEach(t => count[t]=(count[t]||0)+1);
     const clickable = [];
@@ -302,7 +330,7 @@ document.getElementById("pOut").onclick = ()=>{
   if (props.out<=0) return;
   const out = slot.splice(-3,3);
   out.forEach((type,i)=>{
-    tiles.push({id: Date.now()+i, type, layer:3, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
+    tiles.push({id: Date.now()+i, type, layer:13, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
   });
   props.out--;
   document.getElementById("pOut").classList.add("used");
