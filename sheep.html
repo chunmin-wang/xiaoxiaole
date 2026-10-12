@@ -170,8 +170,13 @@ function buildBoard(){
     for (const [dx, y] of upperPos){
       tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0 + dx - tileSize/2, y, removed: false}); idx++;
     }
-    tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 - 30 - tileSize/2, y: 175, removed: false}); idx++;
-    tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 + 20 - tileSize/2, y: 175, removed: false}); idx++;
+    const topPos = [
+      [-110,185],[-60,170],[-10,175],[40,170],[90,185],
+      [-85,140],[-35,135],[15,140],[65,135],
+    ];
+    for (const [dx,y] of topPos){
+      tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0 + dx - tileSize/2, y, removed: false}); idx++;
+    }
     while (idx < total){
       tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 290 + Math.random()*15, removed: false});
       idx++;
