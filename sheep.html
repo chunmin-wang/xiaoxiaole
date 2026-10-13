@@ -156,30 +156,30 @@ function buildBoard(){
     }
     const cx0 = stackW / 2;
     const S = 52;
-    const L0 = [
-      {y:300, xs:[-104,-52,0,52,104]},
-      {y:248, xs:[-130,-78,-26,26,78,130]},
-      {y:196, xs:[-52,0,52]},
+    const mk = (dx, y, layer) => ({id: idx, type: deck[idx], layer, x: cx0+dx-S/2, y, removed:false});
+    const L2pos = [
+      [0,150],[-52,176],[52,176],
+      [-78,202],[0,202],[78,202],
+      [0,228],
     ];
-    const L1 = [
-      {y:274, xs:[-78,-26,26,78]},
-      {y:222, xs:[-104,-52,-26,26,52,104]},
-      {y:170, xs:[-26,26]},
+    const L1pos = [
+      [-26,176],[26,176],
+      [-78,202],[-26,202],
+      [26,202],[78,202],
+      [-104,228],[-52,228],
+      [-26,228],[26,228],
+      [52,228],[104,228],
+      [-26,254],[26,254],
     ];
-    const L2 = [
-      {y:248, xs:[-52,0,52]},
-      {y:196, xs:[-78,0,78]},
-      {y:144, xs:[0]},
+    const L0pos = [
+      [-52,202],[0,202],
+      [-104,228],[-52,228],[0,228],[52,228],
+      [-130,254],[-78,254],[-26,254],[26,254],[78,254],[130,254],
+      [-52,280],[0,280],[52,280],
     ];
-    for (const row of L0) for (const dx of row.xs){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
-    }
-    for (const row of L1) for (const dx of row.xs){
-      tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
-    }
-    for (const row of L2) for (const dx of row.xs){
-      tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
-    }
+    for (const [dx,y] of L0pos){ tiles.push(mk(dx,y,0)); idx++; }
+    for (const [dx,y] of L1pos){ tiles.push(mk(dx,y,1)); idx++; }
+    for (const [dx,y] of L2pos){ tiles.push(mk(dx,y,2)); idx++; }
     while (idx < total){
       const side = Math.random() < 0.5 ? 0 : 1;
       const px = side===0 ? pileLeftX : pileRightX;
