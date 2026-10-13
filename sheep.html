@@ -157,12 +157,14 @@ function buildBoard(){
     const cx0 = stackW / 2;
     const S = 52;
     const mk = (dx, y, layer) => ({id: idx, type: deck[idx], layer, x: cx0+dx-S/2, y, removed:false});
-    const L0pos = [[-156,280],[-104,280],[-52,280],[0,280],[52,280],[104,280],[156,280]];
-    const L1pos = [[-130,254],[-78,254],[-26,254],[26,254],[78,254],[130,254]];
-    const L2pos = [[-104,228],[-52,228],[0,228],[52,228],[104,228]];
+    const L0pos = [[-182,280],[-130,280],[-78,280],[-26,280],[26,280],[78,280],[130,280],[182,280]];
+    const L1pos = [[-156,254],[-104,254],[-52,254],[0,254],[52,254],[104,254],[156,254]];
+    const L2pos = [[-130,228],[-78,228],[-26,228],[26,228],[78,228],[130,228]];
+    const L3pos = [[-52,202],[0,202],[52,202]];
     for (const [dx,y] of L0pos){ tiles.push(mk(dx,y,0)); idx++; }
     for (const [dx,y] of L1pos){ tiles.push(mk(dx,y,1)); idx++; }
     for (const [dx,y] of L2pos){ tiles.push(mk(dx,y,2)); idx++; }
+    for (const [dx,y] of L3pos){ tiles.push(mk(dx,y,3)); idx++; }
     while (idx < total){
       const side = Math.random() < 0.5 ? 0 : 1;
       const px = side===0 ? pileLeftX : pileRightX;
