@@ -2,16 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache">
 <title>咩了个咩 · Mie Le Ge Mie</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{overflow-x:hidden;}
 body{
   font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   background:linear-gradient(160deg,#5b2a86 0%,#a2379c 55%,#e2588b 100%);
   color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;
-  padding:8px;user-select:none;overflow-x:hidden;
+  padding:8px;user-select:none;
 }
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(circle at 15% 20%,rgba(255,255,255,.15) 0,transparent 50px),
@@ -26,7 +27,8 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .prop{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
   border-radius:10px;padding:4px 10px;cursor:pointer;font-size:12px;}
 .prop.used{opacity:.4;pointer-events:none;}
-#stack{position:relative;width:100%;max-width:440px;height:440px;margin:0 auto;}
+#stackWrap{position:relative;width:440px;margin:0 auto;}
+#stack{position:relative;width:440px;height:440px;transform-origin:top center;}
 .tile{position:absolute;width:52px;height:52px;border-radius:10px;
   background:#fff;border:2px solid #ddd;box-shadow:0 3px 8px rgba(0,0,0,.25);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -34,9 +36,10 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .tile img{width:90%;height:90%;object-fit:contain;pointer-events:none;}
 .tile.locked{filter:brightness(.75);cursor:not-allowed;}
 .tile:not(.locked):active{transform:scale(.92);}
-#tempSlot{display:flex;justify-content:center;gap:4px;margin:4px auto;max-width:220px;
+#slotWrap{width:440px;margin:0 auto;}
+#tempSlot{display:flex;justify-content:center;gap:4px;margin:4px auto;
   background:rgba(0,0,0,.15);padding:6px;border-radius:12px;min-height:56px;}
-#slot{display:flex;justify-content:center;gap:4px;margin:6px auto;max-width:440px;
+#slot{display:flex;justify-content:center;gap:4px;margin:6px auto;
   background:rgba(0,0,0,.2);padding:8px;border-radius:12px;min-height:60px;}
 .slot-cell{width:52px;height:52px;border-radius:10px;position:relative;}
 .slot-cell img{width:100%;height:100%;object-fit:contain;}
@@ -73,9 +76,11 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
       <div class="prop" id="pOut">📤 移出</div>
     </div>
   </div>
-  <div id="stack"></div>
-  <div id="tempSlot"></div>
-  <div id="slot"></div>
+  <div id="stackWrap"><div id="stack"></div></div>
+  <div id="slotWrap">
+    <div id="tempSlot"></div>
+    <div id="slot"></div>
+  </div>
   <div style="text-align:center;">
     <button class="btn" id="restartBtn">🔄 重开</button>
   </div>
@@ -112,10 +117,24 @@ const tempEl = document.getElementById("tempSlot");
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+function fitScale(){
+  const avail = Math.min(440, window.innerWidth - 16);
+  const s = avail / 440;
+  document.getElementById("stack").style.transform = `scale(${s})`;
+  document.getElementById("stackWrap").style.height = (440 * s) + "px";
+  const sw = document.getElementById("slotWrap");
+  sw.style.transform = `scale(${s})`;
+  sw.style.transformOrigin = "top center";
+  sw.style.margin = "0 auto";
+  const slotH = sw.offsetHeight;
+  sw.style.marginBottom = (slotH * (s - 1)) + "px";
+}
+
 function build(){
   let tries = 0;
   do { buildBoard(); tries++; } while (!isSolvable() && tries < 100);
   render();
+  fitScale();
 }
 
 function buildBoard(){
@@ -127,15 +146,13 @@ function buildBoard(){
   const deck = [];
   for (let t=0; t<lv.types; t++){ for (let g=0; g<lv.groups; g++) deck.push(t); }
   shuffle(deck);
-  const stackW = stackEl.clientWidth || 440;
+  const cx0 = 220;
   const tileSize = 52;
   let idx = 0;
   const total = deck.length;
 
   if (level === 0){
-    const bottomY = 200;
-    const gap = 58;
-    const cx0 = stackW/2;
+    const bottomY = 200, gap = 58;
     for (let k=0; k<6; k++){
       const x = cx0 + (k - 2.5) * gap - tileSize/2;
       tiles.push({ id: idx, type: deck[idx], layer: 0, x, y: bottomY, removed: false });
@@ -148,20 +165,14 @@ function buildBoard(){
     }
   } else {
     const pileCount = 3;
-    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 130;
+    const pileLeftX = 5, pileRightX = 440 - 5 - tileSize, pileY = 130;
     for (let s=0; s<2; s++){
       const px = s===0 ? pileLeftX : pileRightX;
       for (let n=0; n<pileCount; n++){
-        tiles.push({
-          id: idx, type: deck[idx],
-          layer: 20 + n,
-          x: px, y: pileY + n*2,
-          removed: false
-        });
+        tiles.push({ id: idx, type: deck[idx], layer: 20+n, x: px, y: pileY+n*2, removed: false });
         idx++;
       }
     }
-    const cx0 = stackW / 2;
     const mk = (dx, y, layer) => ({id: idx, type: deck[idx], layer, x: cx0+dx-tileSize/2, y, removed:false});
     const L5 = [[-56,130,5],[0,130,5],[56,130,5]];
     const L4 = [[-84,156,4],[-28,156,4],[28,156,4],[84,156,4]];
@@ -382,7 +393,8 @@ document.getElementById("restartBtn").onclick = ()=>build();
 document.getElementById("retryBtn").onclick = ()=>{document.getElementById("resultOv").classList.add("hidden");build();};
 document.getElementById("nextBtn").onclick = ()=>{level++;document.getElementById("resultOv").classList.add("hidden");build();};
 
-window.addEventListener("resize", ()=>build());
+window.addEventListener("resize", fitScale);
+window.addEventListener("orientationchange", ()=>setTimeout(fitScale, 100));
 build();
 </script>
 </body>
