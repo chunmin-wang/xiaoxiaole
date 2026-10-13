@@ -199,7 +199,7 @@ function isSolvable(){
       let ok = true;
       for (let j=0;j<tiles.length;j++){
         if (removed[j] || j===i || tiles[j].layer <= t.layer) continue;
-        if (Math.abs(tiles[j].x-t.x)<52 && Math.abs(tiles[j].y-t.y)<52){ ok=false; break; }
+        if (Math.abs(tiles[j].x-t.x)<53 && Math.abs(tiles[j].y-t.y)<53){ ok=false; break; }
       }
       if (ok) clickable.push(i);
     }
@@ -231,7 +231,7 @@ function isSolvable(){
 }
 
 function isUncovered(t){
-  const S = 52;
+  const S = 53;
   for (const o of tiles){
     if (o.removed || o.layer <= t.layer) continue;
     if (Math.abs(o.x - t.x) < S && Math.abs(o.y - t.y) < S) return false;
