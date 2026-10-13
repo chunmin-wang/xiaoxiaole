@@ -182,14 +182,18 @@ function buildBoard(){
     for (const [dx,y] of topPos){
       tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
     }
-    const extraX = [-150,162,-124,136,-72,84,-20,32,-98,110,-46,58];
+    const extraPos = [
+      [-124,300],[-72,300],[-20,300],[32,300],[84,300],[136,300],
+      [-98,260],[-46,260],[6,260],[58,260],[110,260],
+      [-72,220],[32,220],
+    ];
     let ei = 0;
-    while (idx < total && ei < extraX.length){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + extraX[ei] - tileSize/2, y: 300, removed: false});
+    while (idx < total && ei < extraPos.length){
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+extraPos[ei][0]-tileSize/2, y: extraPos[ei][1], removed: false});
       idx++; ei++;
     }
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0 + (Math.random()-0.5)*200, y: 260, removed: false});
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+(Math.random()-0.5)*200, y: 260, removed: false});
       idx++;
     }
   }
