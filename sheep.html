@@ -140,7 +140,7 @@ function buildBoard(){
       idx++;
     }
   } else {
-    const pileCount = 8;
+    const pileCount = 3;
     const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 120;
     for (let s=0; s<2; s++){
       const px = s===0 ? pileLeftX : pileRightX;
@@ -155,44 +155,36 @@ function buildBoard(){
       }
     }
     const cx0 = stackW / 2;
-    const gap = 52;
-    const basePos = [
-      [-150,300],[-98,300],[-46,300],[6,300],[58,300],[110,300],[162,300],
-      [-124,260],[-72,260],[-20,260],[32,260],[84,260],[136,260],
-      [-98,220],[-46,220],[6,220],[58,220],[110,220],
-      [-72,180],[-20,180],[32,180],[84,180],
+    const S = 52;
+    const L0 = [
+      {y:300, xs:[-156,-104,-52,0,52,104,156]},
+      {y:248, xs:[-130,-78,-26,26,78,130]},
+      {y:196, xs:[-104,-52,0,52,104]},
+      {y:144, xs:[-78,-26,26,78]},
     ];
-    for (const [dx,y] of basePos){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
+    const L1 = [
+      {y:274, xs:[-130,-78,-26,26,78,130]},
+      {y:222, xs:[-104,-52,0,52,104]},
+      {y:170, xs:[-78,-26,26,78]},
+    ];
+    const L2 = [
+      {y:248, xs:[-104,-52,0,52]},
+      {y:196, xs:[-78,-26,26]},
+      {y:144, xs:[-52,0]},
+    ];
+    for (const row of L0) for (const dx of row.xs){
+      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
     }
-    const midPos = [
-      [-124,274],[-72,274],[-20,274],[32,274],[84,274],[136,274],
-      [-98,234],[-46,234],[6,234],[58,234],[110,234],
-      [-72,194],[-20,194],[32,194],
-    ];
-    for (const [dx,y] of midPos){
-      tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
+    for (const row of L1) for (const dx of row.xs){
+      tiles.push({id: idx, type: deck[idx], layer: 1, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
     }
-    const topPos = [
-      [-98,248],[-46,248],[6,248],[58,248],
-      [-72,208],[-20,208],[32,208],
-      [-124,274],
-    ];
-    for (const [dx,y] of topPos){
-      tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0+dx-tileSize/2, y, removed: false}); idx++;
-    }
-    const extraPos = [
-      [-124,300],[-72,300],[-20,300],[32,300],[84,300],[136,300],
-      [-98,260],[-46,260],[6,260],[58,260],[110,260],
-      [-72,220],[-20,220],[32,220],
-    ];
-    let ei = 0;
-    while (idx < total && ei < extraPos.length){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+extraPos[ei][0]-tileSize/2, y: extraPos[ei][1], removed: false});
-      idx++; ei++;
+    for (const row of L2) for (const dx of row.xs){
+      tiles.push({id: idx, type: deck[idx], layer: 2, x: cx0+dx-S/2, y: row.y, removed: false}); idx++;
     }
     while (idx < total){
-      tiles.push({id: idx, type: deck[idx], layer: 0, x: cx0+(Math.random()-0.5)*200, y: 260, removed: false});
+      const side = Math.random() < 0.5 ? 0 : 1;
+      const px = side===0 ? pileLeftX : pileRightX;
+      tiles.push({id: idx, type: deck[idx], layer: 30+idx, x: px, y: pileY+Math.random()*16, removed: false});
       idx++;
     }
   }
