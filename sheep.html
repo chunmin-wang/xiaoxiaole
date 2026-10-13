@@ -34,7 +34,9 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 .tile img{width:90%;height:90%;object-fit:contain;pointer-events:none;}
 .tile.locked{filter:brightness(.75);cursor:not-allowed;}
 .tile:not(.locked):active{transform:scale(.92);}
-#slot{display:flex;justify-content:center;gap:4px;margin:10px auto;max-width:440px;
+#tempSlot{display:flex;justify-content:center;gap:4px;margin:4px auto;max-width:220px;
+  background:rgba(0,0,0,.15);padding:6px;border-radius:12px;min-height:56px;}
+#slot{display:flex;justify-content:center;gap:4px;margin:6px auto;max-width:440px;
   background:rgba(0,0,0,.2);padding:8px;border-radius:12px;min-height:60px;}
 .slot-cell{width:52px;height:52px;border-radius:10px;position:relative;}
 .slot-cell img{width:100%;height:100%;object-fit:contain;}
@@ -42,6 +44,9 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
 @keyframes enterPop{0%{transform:scale(.3);opacity:0;}100%{transform:scale(1);opacity:1;}}
 .slot-cell.matched img{animation:popOut .35s ease forwards;}
 @keyframes popOut{0%{transform:scale(1);opacity:1;}50%{transform:scale(1.2);opacity:1;}100%{transform:scale(0);opacity:0;}}
+.temp-cell{width:52px;height:52px;border-radius:10px;cursor:pointer;position:relative;}
+.temp-cell img{width:100%;height:100%;object-fit:contain;}
+.temp-cell:not(:empty){background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.3);}
 .btn{background:linear-gradient(180deg,#ffd166,#ff9f43);border:none;color:#6b3b00;
   font-weight:800;padding:10px 20px;border-radius:12px;cursor:pointer;font-size:15px;
   box-shadow:0 4px 0 #d17f2a;}
@@ -69,6 +74,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
     </div>
   </div>
   <div id="stack"></div>
+  <div id="tempSlot"></div>
   <div id="slot"></div>
   <div style="text-align:center;">
     <button class="btn" id="restartBtn">🔄 重开</button>
@@ -99,9 +105,10 @@ const LEVELS = [
   { types: 3, groups: 3 },
   { types: 8, groups: 9 },
 ];
-let level = 0, tiles = [], slot = [], history = [], props = {undo:1, shuffle:1, out:1};
+let level = 0, tiles = [], slot = [], tempSlot = [], history = [], props = {undo:1, shuffle:1, out:1};
 const stackEl = document.getElementById("stack");
 const slotEl = document.getElementById("slot");
+const tempEl = document.getElementById("tempSlot");
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
@@ -112,7 +119,7 @@ function build(){
 }
 
 function buildBoard(){
-  tiles = []; slot = []; history = [];
+  tiles = []; slot = []; tempSlot = []; history = [];
   props = {undo:1, shuffle:1, out:1};
   document.getElementById("lvLabel").textContent = "第 " + (level+1) + " 关";
   ["pUndo","pShuffle","pOut"].forEach(id=>{document.getElementById(id).classList.remove("used");});
@@ -141,7 +148,7 @@ function buildBoard(){
     }
   } else {
     const pileCount = 3;
-    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 120;
+    const pileLeftX = 5, pileRightX = stackW - 5 - tileSize, pileY = 130;
     for (let s=0; s<2; s++){
       const px = s===0 ? pileLeftX : pileRightX;
       for (let n=0; n<pileCount; n++){
@@ -155,16 +162,18 @@ function buildBoard(){
       }
     }
     const cx0 = stackW / 2;
-    const S = 52;
-    const mk = (dx, y, layer) => ({id: idx, type: deck[idx], layer, x: cx0+dx-S/2, y, removed:false});
-    const L0pos = [[-234,280],[-182,280],[-130,280],[-78,280],[-26,280],[26,280],[78,280],[130,280],[182,280],[234,280]];
-    const L1pos = [[-208,254],[-156,254],[-104,254],[-52,254],[0,254],[52,254],[104,254],[156,254],[208,254]];
-    const L2pos = [[-182,228],[-130,228],[-78,228],[-26,228],[26,228],[78,228],[130,228],[182,228]];
-    const L3pos = [[-104,202],[-52,202],[0,202],[52,202],[104,202]];
-    for (const [dx,y] of L0pos){ tiles.push(mk(dx,y,0)); idx++; }
-    for (const [dx,y] of L1pos){ tiles.push(mk(dx,y,1)); idx++; }
-    for (const [dx,y] of L2pos){ tiles.push(mk(dx,y,2)); idx++; }
-    for (const [dx,y] of L3pos){ tiles.push(mk(dx,y,3)); idx++; }
+    const mk = (dx, y, layer) => ({id: idx, type: deck[idx], layer, x: cx0+dx-tileSize/2, y, removed:false});
+    const Ag = [[-200,250,0],[-148,250,0],[-96,250,0],[-44,250,0],
+                [-174,224,1],[-122,224,1],[-70,224,1],
+                [-148,198,2],[-96,198,2]];
+    const Bg = [[44,250,0],[96,250,0],[148,250,0],[200,250,0],
+                [70,224,1],[122,224,1],[174,224,1],
+                [96,198,2],[148,198,2]];
+    const Cg = [[-52,310,0],[0,310,0],[52,310,0],
+                [-26,284,1],[26,284,1]];
+    for (const [dx,y,l] of Ag){ tiles.push(mk(dx,y,l)); idx++; }
+    for (const [dx,y,l] of Bg){ tiles.push(mk(dx,y,l)); idx++; }
+    for (const [dx,y,l] of Cg){ tiles.push(mk(dx,y,l)); idx++; }
     while (idx < total){
       const side = Math.random() < 0.5 ? 0 : 1;
       const px = side===0 ? pileLeftX : pileRightX;
@@ -241,6 +250,7 @@ function render(){
     stackEl.appendChild(el);
   });
   renderSlot();
+  renderTemp();
 }
 
 function renderSlot(enterIdx=-1){
@@ -257,15 +267,30 @@ function renderSlot(enterIdx=-1){
   }
 }
 
-function onTile(t){
-  if (!isUncovered(t) || slot.length >= 7) return;
-  t.removed = true;
-  history.push({type:t.type, id:t.id});
-  slot.push(t.type);
+function renderTemp(){
+  tempEl.innerHTML = "";
+  for (let i=0;i<3;i++){
+    const c = document.createElement("div");
+    c.className = "temp-cell";
+    if (tempSlot[i] !== undefined){
+      const img = document.createElement("img");
+      img.src = IMG[tempSlot[i]];
+      c.appendChild(img);
+      c.onclick = ()=>{
+        if (slot.length >= 7) return;
+        const t = tempSlot.splice(i,1)[0];
+        slot.push(t);
+        afterSlotChange();
+      };
+    }
+    tempEl.appendChild(c);
+  }
+}
+
+function afterSlotChange(){
   const count = {};
   slot.forEach(x => count[x]=(count[x]||0)+1);
   const matchedType = Object.keys(count).find(k => count[k]>=3);
-  render();
   renderSlot(slot.length-1);
   if (matchedType !== undefined){
     setTimeout(()=>{
@@ -284,12 +309,20 @@ function onTile(t){
         if (String(slot[i]) === matchedType){ slot.splice(i,1); removedCount++; }
       }
       render();
-      renderSlot();
       checkEnd();
     }, 450);
   } else {
     checkEnd();
   }
+}
+
+function onTile(t){
+  if (!isUncovered(t) || slot.length >= 7) return;
+  t.removed = true;
+  history.push({type:t.type, id:t.id});
+  slot.push(t.type);
+  render();
+  afterSlotChange();
 }
 
 function checkEnd(){
@@ -330,11 +363,10 @@ document.getElementById("pShuffle").onclick = ()=>{
   render();
 };
 document.getElementById("pOut").onclick = ()=>{
-  if (props.out<=0) return;
-  const out = slot.splice(-3,3);
-  out.forEach((type,i)=>{
-    tiles.push({id: Date.now()+i, type, layer:2, x: Math.random()*300+70, y: Math.random()*100+50, removed:false});
-  });
+  if (props.out<=0 || tempSlot.length >= 3) return;
+  const n = Math.min(3 - tempSlot.length, slot.length);
+  const out = slot.splice(-n, n);
+  out.forEach(t=>tempSlot.push(t));
   props.out--;
   document.getElementById("pOut").classList.add("used");
   render();
