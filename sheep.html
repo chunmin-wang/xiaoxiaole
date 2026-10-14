@@ -28,7 +28,7 @@ h1{text-align:center;font-size:26px;font-weight:900;letter-spacing:3px;
   border-radius:10px;padding:4px 10px;cursor:pointer;font-size:12px;}
 .prop.used{opacity:.4;pointer-events:none;}
 #stackWrap{position:relative;width:440px;margin:0 auto;}
-#stack{position:relative;width:440px;height:440px;transform-origin:top center;}
+#stack{position:relative;width:440px;height:440px;transform-origin:top left;}
 .tile{position:absolute;width:52px;height:52px;border-radius:10px;
   background:#fff;border:2px solid #ddd;box-shadow:0 3px 8px rgba(0,0,0,.25);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
@@ -120,14 +120,16 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 function fitScale(){
   const avail = Math.min(440, window.innerWidth - 16);
   const s = avail / 440;
-  document.getElementById("stack").style.transform = `scale(${s})`;
-  document.getElementById("stackWrap").style.height = (440 * s) + "px";
+  const stack = document.getElementById("stack");
+  const wrap = document.getElementById("stackWrap");
+  stack.style.transform = `scale(${s})`;
+  stack.style.transformOrigin = "top left";
+  wrap.style.width = avail + "px";
+  wrap.style.height = (440 * s) + "px";
   const sw = document.getElementById("slotWrap");
   sw.style.transform = `scale(${s})`;
-  sw.style.transformOrigin = "top center";
-  sw.style.margin = "0 auto";
-  const slotH = sw.offsetHeight;
-  sw.style.marginBottom = (slotH * (s - 1)) + "px";
+  sw.style.transformOrigin = "top left";
+  sw.style.width = avail + "px";
 }
 
 function build(){
